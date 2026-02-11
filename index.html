@@ -3,204 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chainat Smart Monitor - Random Simulation</title>
+    <title>Futuristic Smart Monitor</title>
+    
+    <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --bg-color: #050510;
+            --card-bg: rgba(20, 20, 35, 0.6);
+            --neon-blue: #00f2ff;
+            --neon-red: #ff0055;
+            --neon-green: #00ff9d;
+            --neon-yellow: #ffcc00;
+            --text-main: #ffffff;
+            --text-muted: #8b9bb4;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: white;
+            font-family: 'Kanit', sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 85, 0.1) 0%, transparent 20%);
+            color: var(--text-main);
             min-height: 100vh;
             padding: 20px;
         }
-        .container { max-width: 1300px; margin: 0 auto; }
-        .main-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 0 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
         }
-        .card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
+        .header h1 {
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: linear-gradient(to right, #fff, #8b9bb4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .connection-status {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 15px;
             border-radius: 20px;
-            padding: 20px;
             border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .card h2 { font-size: 1rem; margin-bottom: 15px; color: #00d2ff; }
-        .val { font-size: 2.5rem; font-weight: bold; font-family: 'Courier New', monospace; text-align: center; }
-        .unit { font-size: 0.9rem; opacity: 0.6; text-align: center; margin-bottom: 10px; }
-        
-        .t-color { color: #ff4b2b; } .h-color { color: #00d2ff; } .p-color { color: #f8ff00; }
-        .clock { font-size: 3rem; color: #4ecca3; font-weight: bold; text-align: center; }
-        
-        .graph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .chart-card { height: 350px; }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 10px currentColor;
+        }
+        .online { background-color: var(--neon-green); color: var(--neon-green); }
+        .offline { background-color: var(--neon-red); color: var(--neon-red); }
 
-        #mqtt-status { font-size: 0.7rem; float: right; }
-        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .online { background-color: #4ecca3; box-shadow: 0 0 10px #4ecca3; }
-        .offline { background-color: #ff416c; }
+        /* Grid Layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
 
-        @media (max-width: 900px) { .graph-grid { grid-template-columns: 1fr; } }
+        /* Card Style */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        }
+        .card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); }
+
+        /* Typography inside cards */
+        .card-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .value-display {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 10px 0;
+            text-shadow: 0 0 20px currentColor;
+        }
+        .unit { font-size: 1rem; color: var(--text-muted); font-family: 'Kanit', sans-serif; margin-left: 5px; }
+
+        /* Specific Colors */
+        .text-temp { color: var(--neon-red); }
+        .text-humi { color: var(--neon-blue); }
+        .text-pm { color: var(--neon-yellow); }
+        .text-clock { color: var(--text-main); }
+
+        /* Layout Assignments */
+        .col-span-3 { grid-column: span 3; }
+        .col-span-4 { grid-column: span 4; }
+        .col-span-6 { grid-column: span 6; }
+        .col-span-8 { grid-column: span 8; }
+        .col-span-12 { grid-column: span 12; }
+
+        @media (max-width: 1024px) {
+            .col-span-3, .col-span-4, .col-span-6, .col-span-8 { grid-column: span 6; }
+        }
+        @media (max-width: 768px) {
+            .grid-container { display: flex; flex-direction: column; }
+        }
+
+        /* Clock */
+        .digital-clock { font-size: 2.5rem; text-align: center; margin-top: 10px; }
+        .date-display { text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+
+        /* PM2.5 Status Bar */
+        .status-pill {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.1);
+            margin-top: 5px;
+        }
+
+        /* Chart Container */
+        .chart-wrapper { position: relative; height: 300px; width: 100%; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="main-grid">
-        <div class="card">
-            <span id="mqtt-status"><span class="dot offline" id="status-dot"></span>MQTT Offline</span>
-            <h2>🌡️ ESP32 Sensor (Live)</h2>
-            <div style="display: flex; justify-content: space-around;">
-                <div><div class="val t-color" id="txt-temp">--</div><div class="unit">°C Temp</div></div>
-                <div><div class="val h-color" id="txt-humi">--</div><div class="unit">% Humidity</div></div>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-microchip"></i> Chainat Monitor <span style="font-size: 0.5em; opacity: 0.5; vertical-align: middle;">v2.0</span></h1>
+            <div class="connection-status">
+                <span class="dot offline" id="status-dot"></span>
+                <span id="mqtt-status-text">DISCONNECTED</span>
             </div>
         </div>
 
-        <div class="card">
-            <h2>💨 PM2.5 (Simulated)</h2>
-            <div class="val p-color" id="txt-pm25">--</div>
-            <div class="unit">µg/m³ (Random Walk)</div>
-            <div id="pm25-status" style="text-align: center; font-size: 0.8rem; font-weight: bold; border-radius: 5px; padding: 4px;">จำลองข้อมูล...</div>
-        </div>
+        <!-- Dashboard Grid -->
+        <div class="grid-container">
+            
+            <!-- Clock Card -->
+            <div class="card col-span-4">
+                <div class="card-title"><i class="far fa-clock"></i> Local Time</div>
+                <div class="value-display text-clock digital-clock" id="clock">00:00:00</div>
+                <div class="date-display" id="date">--</div>
+            </div>
 
-        <div class="card">
-            <h2>⏰ Time</h2>
-            <div class="clock" id="clock">00:00:00</div>
-            <div id="date" style="text-align: center; opacity: 0.5; font-size: 0.8rem;">--</div>
+            <!-- ESP32 Temp -->
+            <div class="card col-span-4">
+                <div class="card-title"><i class="fas fa-temperature-high text-temp"></i> Temperature</div>
+                <div class="value-display text-temp">
+                    <span id="txt-temp">--</span><span class="unit">°C</span>
+                </div>
+                <div style="font-size: 0.8rem; opacity: 0.5;">Sensor: DHT22 / ESP32</div>
+            </div>
+
+            <!-- ESP32 Humidity -->
+            <div class="card col-span-4">
+                <div class="card-title"><i class="fas fa-tint text-humi"></i> Humidity</div>
+                <div class="value-display text-humi">
+                    <span id="txt-humi">--</span><span class="unit">%</span>
+                </div>
+                <div style="font-size: 0.8rem; opacity: 0.5;">Relative Humidity</div>
+            </div>
+
+            <!-- Main Chart (Temp & Humi) -->
+            <div class="card col-span-8">
+                <div class="card-title">
+                    <i class="fas fa-chart-line"></i> Real-time Environment
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartESP32"></canvas>
+                </div>
+            </div>
+
+            <!-- PM2.5 Section (Smaller Column) -->
+            <div class="card col-span-4">
+                <div class="card-title"><i class="fas fa-smog text-pm"></i> PM2.5 (Simulated)</div>
+                <div style="text-align: center; margin: 20px 0;">
+                    <div class="value-display text-pm">
+                        <span id="txt-pm25">--</span>
+                    </div>
+                    <div class="unit">µg/m³</div>
+                    <div class="status-pill" id="pm25-pill">Waiting...</div>
+                </div>
+                <div style="height: 120px;">
+                    <canvas id="chartPM25"></canvas>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <div class="graph-grid">
-        <div class="card chart-card">
-            <h2>📊 ESP32 Data (MQTT)</h2>
-            <div style="height: 260px;"><canvas id="chartESP32"></canvas></div>
-        </div>
-        <div class="card chart-card">
-            <h2>📊 PM2.5 Trend (Simulation)</h2>
-            <div style="height: 260px;"><canvas id="chartPM25"></canvas></div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // --- 1. Clock ---
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('clock').textContent = now.toLocaleTimeString('th-TH');
-        document.getElementById('date').textContent = now.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
-    setInterval(updateClock, 1000);
-
-    // --- 2. Charts Setup ---
-    const MAX_DATA = 15;
-    const commonOptions = {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: 'white', font: { size: 10 } } } },
-        scales: { 
-            x: { ticks: { color: '#888', font: { size: 10 } }, grid: { display: false } },
-            y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+    <script>
+        // --- 1. Clock Logic ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('th-TH', { hour12: false });
+            document.getElementById('date').textContent = now.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
         }
-    };
+        setInterval(updateClock, 1000);
+        updateClock();
 
-    const chartESP = new Chart(document.getElementById('chartESP32'), {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                { label: 'Temp', data: [], borderColor: '#ff4b2b', yAxisID: 'y', tension: 0.3 },
-                { label: 'Humi', data: [], borderColor: '#00d2ff', yAxisID: 'y1', tension: 0.3 }
-            ]
-        },
-        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { position: 'left' }, y1: { position: 'right', grid: { drawOnChartArea: false } } } }
-    });
+        // --- 2. Chart Configuration (With Gradient) ---
+        Chart.defaults.color = '#8b9bb4';
+        Chart.defaults.font.family = "'Kanit', sans-serif";
 
-    const chartPM = new Chart(document.getElementById('chartPM25'), {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{ label: 'PM2.5 (Sim)', data: [], backgroundColor: 'rgba(248, 255, 0, 0.4)', borderColor: '#f8ff00', borderWidth: 1 }]
-        },
-        options: commonOptions
-    });
-
-    // --- 3. PM2.5 Random Logic ---
-    let currentPM25 = 25; // เริ่มต้นที่ 25
-    function simulatePM25() {
-        // สุ่มแบบ Random Walk (เพิ่มหรือลดทีละนิดเพื่อให้กราฟไม่กระโดด)
-        const change = (Math.random() * 4) - 2; // สุ่มค่าระหว่าง -2 ถึง +2
-        currentPM25 += change;
+        const ctxESP = document.getElementById('chartESP32').getContext('2d');
         
-        // คุมให้อยู่ในช่วง 10 - 150
-        if (currentPM25 < 10) currentPM25 = 10;
-        if (currentPM25 > 150) currentPM25 = 150;
+        // Gradient Setup
+        const gradientTemp = ctxESP.createLinearGradient(0, 0, 0, 400);
+        gradientTemp.addColorStop(0, 'rgba(255, 0, 85, 0.5)');
+        gradientTemp.addColorStop(1, 'rgba(255, 0, 85, 0)');
 
-        const val = Math.round(currentPM25);
-        document.getElementById('txt-pm25').textContent = val;
-        
-        const st = document.getElementById('pm25-status');
-        if(val <= 25) { st.textContent = "ดีมาก"; st.style.color = "#27ae60"; }
-        else if(val <= 50) { st.textContent = "ปานกลาง"; st.style.color = "#f39c12"; }
-        else { st.textContent = "เริ่มมีผลต่อสุขภาพ"; st.style.color = "#ff416c"; }
-        
-        return val;
-    }
+        const gradientHumi = ctxESP.createLinearGradient(0, 0, 0, 400);
+        gradientHumi.addColorStop(0, 'rgba(0, 242, 255, 0.5)');
+        gradientHumi.addColorStop(1, 'rgba(0, 242, 255, 0)');
 
-    function updateCharts(time, t, h, p) {
-        [chartESP, chartPM].forEach(c => {
-            if (c.data.labels.length >= MAX_DATA) {
-                c.data.labels.shift();
-                c.data.datasets.forEach(d => d.data.shift());
-            }
-            c.data.labels.push(time);
-        });
-        chartESP.data.datasets[0].data.push(t);
-        chartESP.data.datasets[1].data.push(h);
-        chartPM.data.datasets[0].data.push(p);
-        chartESP.update(); chartPM.update();
-    }
-
-    // --- 4. MQTT Connection ---
-    const mqttCfg = {
-        host: "1775d011329846b5a98c94a70f743969.s1.eu.hivemq.cloud",
-        port: 8884,
-        user: "dpnine", pass: "nayNAY08", topic: "home/sensor"
-    };
-
-    const client = new Paho.MQTT.Client(mqttCfg.host, mqttCfg.port, "web_sim_" + Math.random().toString(16).substr(2, 5));
-    
-    client.onMessageArrived = (msg) => {
-        const payload = JSON.parse(msg.payloadString);
-        const now = new Date().toLocaleTimeString('th-TH', { hour12: false });
-        const pVal = simulatePM25(); // สุ่มค่าใหม่ทุกครั้งที่ MQTT อัปเดต
-        
-        document.getElementById('txt-temp').textContent = payload.temp;
-        document.getElementById('txt-humi').textContent = payload.humidity;
-        
-        updateCharts(now, payload.temp, payload.humidity, pVal);
-    };
-
-    client.onConnectionLost = () => {
-        document.getElementById('status-dot').className = "dot offline";
-        setTimeout(conn, 5000);
-    };
-
-    function conn() {
-        client.connect({
-            onSuccess: () => {
-                document.getElementById('status-dot').className = "dot online";
-                document.getElementById('mqtt-status').lastChild.textContent = " Online";
-                client.subscribe(mqttCfg.topic);
+        const chartESP = new Chart(ctxESP, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Temp (°C)',
+                        data: [],
+                        borderColor: '#ff0055',
+                        backgroundColor: gradientTemp,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#ff0055',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Humidity (%)',
+                        data: [],
+                        borderColor: '#00f2ff',
+                        backgroundColor: gradientHumi,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#00f2ff',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1'
+                    }
+                ]
             },
-            onFailure: () => setTimeout(conn, 5000),
-            userName: mqttCfg.user, password: mqttCfg.pass, useSSL: true
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', align: 'end' }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        position: 'left',
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        suggestedMin: 20, suggestedMax: 40
+                    },
+                    y1: { 
+                        position: 'right',
+                        grid: { display: false },
+                        suggestedMin: 40, suggestedMax: 100
+                    }
+                }
+            }
         });
-    }
-    conn();
-</script>
+
+        const ctxPM = document.getElementById('chartPM25').getContext('2d');
+        const chartPM = new Chart(ctxPM, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'PM2.5',
+                    data: [],
+                    backgroundColor: '#ffcc00',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+
+        // --- 3. Update Logic ---
+        const MAX_POINTS = 20;
+        function updateCharts(time, t, h, p) {
+            // Update ESP Chart
+            if (chartESP.data.labels.length >= MAX_POINTS) {
+                chartESP.data.labels.shift();
+                chartESP.data.datasets.forEach(d => d.data.shift());
+            }
+            chartESP.data.labels.push(time);
+            chartESP.data.datasets[0].data.push(t);
+            chartESP.data.datasets[1].data.push(h);
+            chartESP.update();
+
+            // Update PM2.5 Chart
+            if (chartPM.data.labels.length >= 10) {
+                chartPM.data.labels.shift();
+                chartPM.data.datasets[0].data.shift();
+            }
+            chartPM.data.labels.push(time);
+            chartPM.data.datasets[0].data.push(p);
+            chartPM.update();
+        }
+
+        // --- 4. Simulation (PM2.5) ---
+        let simPM25 = 35;
+        function simulatePM25() {
+            simPM25 += (Math.random() * 6) - 3; // Random walk
+            if(simPM25 < 5) simPM25 = 5;
+            if(simPM25 > 150) simPM25 = 150;
+            
+            const val = Math.round(simPM25);
+            const el = document.getElementById('txt-pm25');
+            const pill = document.getElementById('pm25-pill');
+            
+            el.textContent = val;
+            
+            if(val <= 25) { 
+                pill.textContent = "Good Air"; pill.style.background = "rgba(0, 255, 157, 0.2)"; pill.style.color = "#00ff9d";
+            } else if(val <= 50) {
+                pill.textContent = "Moderate"; pill.style.background = "rgba(255, 204, 0, 0.2)"; pill.style.color = "#ffcc00";
+            } else {
+                pill.textContent = "Unhealthy"; pill.style.background = "rgba(255, 0, 85, 0.2)"; pill.style.color = "#ff0055";
+            }
+            return val;
+        }
+
+        // --- 5. MQTT Connection ---
+        const mqttConfig = {
+            host: "1775d011329846b5a98c94a70f743969.s1.eu.hivemq.cloud",
+            port: 8884,
+            user: "dpnine", pass: "nayNAY08", topic: "home/sensor"
+        };
+
+        const client = new Paho.MQTT.Client(mqttConfig.host, mqttConfig.port, "web_" + Math.random().toString(16).substr(2, 6));
+
+        client.onMessageArrived = (msg) => {
+            try {
+                const payload = JSON.parse(msg.payloadString);
+                const pmVal = simulatePM25();
+                const now = new Date().toLocaleTimeString('th-TH', { hour12: false, hour:'2-digit', minute:'2-digit' });
+
+                // Update DOM
+                document.getElementById('txt-temp').textContent = payload.temp;
+                document.getElementById('txt-humi').textContent = payload.humidity;
+
+                // Update Charts
+                updateCharts(now, payload.temp, payload.humidity, pmVal);
+            } catch(e) { console.error(e); }
+        };
+
+        client.onConnectionLost = () => {
+            document.getElementById('status-dot').className = "dot offline";
+            document.getElementById('mqtt-status-text').textContent = "DISCONNECTED";
+            setTimeout(connectMQTT, 5000);
+        };
+
+        function connectMQTT() {
+            document.getElementById('mqtt-status-text').textContent = "CONNECTING...";
+            client.connect({
+                onSuccess: () => {
+                    document.getElementById('status-dot').className = "dot online";
+                    document.getElementById('mqtt-status-text').textContent = "ONLINE (HiveMQ)";
+                    client.subscribe(mqttConfig.topic);
+                },
+                onFailure: () => setTimeout(connectMQTT, 5000),
+                userName: mqttConfig.user, password: mqttConfig.pass, useSSL: true
+            });
+        }
+
+        connectMQTT();
+    </script>
 </body>
 </html>
