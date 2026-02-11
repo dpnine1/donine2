@@ -3,40 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Futuristic Smart Monitor</title>
+    <title>Clean Smart Monitor</title>
     
     <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg-color: #050510;
-            --card-bg: rgba(20, 20, 35, 0.6);
-            --neon-blue: #00f2ff;
-            --neon-red: #ff0055;
-            --neon-green: #00ff9d;
-            --neon-yellow: #ffcc00;
-            --text-main: #ffffff;
-            --text-muted: #8b9bb4;
+            /* Palette: Soft Dark Theme */
+            --bg-gradient-start: #1a1c23;
+            --bg-gradient-end: #12141a;
+            
+            --card-bg: rgba(35, 39, 47, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            
+            /* Soft Colors (Pastel) */
+            --color-temp: #ff7675;   /* Soft Coral */
+            --color-humi: #74b9ff;   /* Soft Blue */
+            --color-pm: #ffeaa7;     /* Soft Yellow */
+            --color-clock: #dfe6e9;  /* Off White */
+            --color-green: #55efc4;  /* Mint Green */
+            
+            --text-main: #f1f2f6;
+            --text-muted: #a4b0be;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Kanit', sans-serif;
-            background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.1) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(255, 0, 85, 0.1) 0%, transparent 20%);
+            font-family: 'Prompt', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             color: var(--text-main);
             min-height: 100vh;
             padding: 20px;
         }
 
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; }
 
         /* Header */
         .header {
@@ -44,119 +49,133 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 0 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 20px;
+            padding: 10px 0;
         }
         .header h1 {
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            background: linear-gradient(to right, #fff, #8b9bb4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .connection-status {
-            font-size: 0.9rem;
+            font-weight: 500;
+            font-size: 1.5rem;
+            color: var(--text-main);
             display: flex;
             align-items: center;
-            background: rgba(0,0,0,0.3);
-            padding: 5px 15px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
+            gap: 10px;
+        }
+        .header h1 i { color: var(--color-humi); }
+        
+        .connection-status {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 6px 16px;
+            border-radius: 30px;
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
         }
         .dot {
             width: 8px; height: 8px; border-radius: 50%;
             margin-right: 8px;
-            box-shadow: 0 0 10px currentColor;
+            transition: all 0.3s ease;
         }
-        .online { background-color: var(--neon-green); color: var(--neon-green); }
-        .offline { background-color: var(--neon-red); color: var(--neon-red); }
+        .online { background-color: var(--color-green); box-shadow: 0 0 8px rgba(85, 239, 196, 0.4); }
+        .offline { background-color: var(--color-temp); }
 
         /* Grid Layout */
         .grid-container {
             display: grid;
             grid-template-columns: repeat(12, 1fr);
-            gap: 20px;
+            gap: 24px;
         }
 
-        /* Card Style */
+        /* Card Style - Clean & Glassy */
         .card {
             background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 24px;
-            padding: 25px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.15);
         }
-        .card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); }
 
         /* Typography inside cards */
         .card-title {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-weight: 400;
             margin-bottom: 15px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         .value-display {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 3rem;
-            font-weight: 700;
-            margin: 10px 0;
-            text-shadow: 0 0 20px currentColor;
+            font-family: 'Prompt', sans-serif; /* Changed from Orbitron for cleaner look */
+            font-size: 3.5rem;
+            font-weight: 500;
+            margin: 5px 0;
+            letter-spacing: -1px;
         }
-        .unit { font-size: 1rem; color: var(--text-muted); font-family: 'Kanit', sans-serif; margin-left: 5px; }
+        .unit { 
+            font-size: 1.2rem; 
+            color: var(--text-muted); 
+            font-weight: 300; 
+            margin-left: 5px; 
+            vertical-align: middle;
+        }
 
         /* Specific Colors */
-        .text-temp { color: var(--neon-red); }
-        .text-humi { color: var(--neon-blue); }
-        .text-pm { color: var(--neon-yellow); }
-        .text-clock { color: var(--text-main); }
+        .text-temp { color: var(--color-temp); }
+        .text-humi { color: var(--color-humi); }
+        .text-pm { color: var(--color-pm); }
+        .text-clock { color: var(--color-clock); }
 
         /* Layout Assignments */
-        .col-span-3 { grid-column: span 3; }
         .col-span-4 { grid-column: span 4; }
-        .col-span-6 { grid-column: span 6; }
         .col-span-8 { grid-column: span 8; }
-        .col-span-12 { grid-column: span 12; }
 
         @media (max-width: 1024px) {
-            .col-span-3, .col-span-4, .col-span-6, .col-span-8 { grid-column: span 6; }
+            .col-span-4, .col-span-8 { grid-column: span 6; }
         }
         @media (max-width: 768px) {
             .grid-container { display: flex; flex-direction: column; }
         }
 
         /* Clock */
-        .digital-clock { font-size: 2.5rem; text-align: center; margin-top: 10px; }
-        .date-display { text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+        .digital-clock { font-size: 3rem; text-align: center; }
+        .date-display { text-align: center; color: var(--text-muted); font-size: 0.95rem; margin-top: -5px; }
 
-        /* PM2.5 Status Bar */
+        /* PM2.5 Pill */
         .status-pill {
             display: inline-block;
-            padding: 5px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            background: rgba(255,255,255,0.1);
-            margin-top: 5px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: rgba(255,255,255,0.05);
+            margin-top: 10px;
+            transition: all 0.3s ease;
         }
 
         /* Chart Container */
-        .chart-wrapper { position: relative; height: 300px; width: 100%; }
+        .chart-wrapper { position: relative; height: 320px; width: 100%; }
+        
+        /* Icons */
+        .icon-box {
+            width: 32px; height: 32px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem;
+            margin-right: 5px;
+        }
+        .icon-temp { background: rgba(255, 118, 117, 0.15); color: var(--color-temp); }
+        .icon-humi { background: rgba(116, 185, 255, 0.15); color: var(--color-humi); }
+        .icon-clock { background: rgba(223, 230, 233, 0.15); color: var(--text-muted); }
+        .icon-chart { background: rgba(85, 239, 196, 0.15); color: var(--color-green); }
+        .icon-pm { background: rgba(255, 234, 167, 0.15); color: var(--color-pm); }
+
     </style>
 </head>
 <body>
@@ -164,10 +183,10 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1><i class="fas fa-microchip"></i> Chainat Monitor <span style="font-size: 0.5em; opacity: 0.5; vertical-align: middle;">v2.0</span></h1>
+            <h1><i class="fas fa-leaf"></i> Chainat Air <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 300; margin-left: 10px;">Monitor Dashboard</span></h1>
             <div class="connection-status">
                 <span class="dot offline" id="status-dot"></span>
-                <span id="mqtt-status-text">DISCONNECTED</span>
+                <span id="mqtt-status-text">Disconnected</span>
             </div>
         </div>
 
@@ -176,50 +195,64 @@
             
             <!-- Clock Card -->
             <div class="card col-span-4">
-                <div class="card-title"><i class="far fa-clock"></i> Local Time</div>
-                <div class="value-display text-clock digital-clock" id="clock">00:00:00</div>
+                <div class="card-title">
+                    <div class="icon-box icon-clock"><i class="far fa-clock"></i></div> 
+                    Current Time
+                </div>
+                <div class="value-display text-clock digital-clock" id="clock">00:00</div>
                 <div class="date-display" id="date">--</div>
             </div>
 
             <!-- ESP32 Temp -->
             <div class="card col-span-4">
-                <div class="card-title"><i class="fas fa-temperature-high text-temp"></i> Temperature</div>
+                <div class="card-title">
+                    <div class="icon-box icon-temp"><i class="fas fa-temperature-high"></i></div>
+                    Temperature
+                </div>
                 <div class="value-display text-temp">
                     <span id="txt-temp">--</span><span class="unit">°C</span>
                 </div>
-                <div style="font-size: 0.8rem; opacity: 0.5;">Sensor: DHT22 / ESP32</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Indoor Sensor</div>
             </div>
 
             <!-- ESP32 Humidity -->
             <div class="card col-span-4">
-                <div class="card-title"><i class="fas fa-tint text-humi"></i> Humidity</div>
+                <div class="card-title">
+                    <div class="icon-box icon-humi"><i class="fas fa-tint"></i></div>
+                    Humidity
+                </div>
                 <div class="value-display text-humi">
                     <span id="txt-humi">--</span><span class="unit">%</span>
                 </div>
-                <div style="font-size: 0.8rem; opacity: 0.5;">Relative Humidity</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Relative Level</div>
             </div>
 
             <!-- Main Chart (Temp & Humi) -->
             <div class="card col-span-8">
                 <div class="card-title">
-                    <i class="fas fa-chart-line"></i> Real-time Environment
+                    <div class="icon-box icon-chart"><i class="fas fa-chart-area"></i></div>
+                    Real-time Overview (24h Trend)
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="chartESP32"></canvas>
                 </div>
             </div>
 
-            <!-- PM2.5 Section (Smaller Column) -->
-            <div class="card col-span-4">
-                <div class="card-title"><i class="fas fa-smog text-pm"></i> PM2.5 (Simulated)</div>
-                <div style="text-align: center; margin: 20px 0;">
-                    <div class="value-display text-pm">
-                        <span id="txt-pm25">--</span>
+            <!-- PM2.5 Section -->
+            <div class="card col-span-4" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div class="card-title">
+                        <div class="icon-box icon-pm"><i class="fas fa-wind"></i></div>
+                        PM2.5 Chainat
                     </div>
-                    <div class="unit">µg/m³</div>
-                    <div class="status-pill" id="pm25-pill">Waiting...</div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <div class="value-display text-pm">
+                            <span id="txt-pm25">--</span> <span class="unit" style="font-size: 1rem;">µg/m³</span>
+                        </div>
+                        <div class="status-pill" id="pm25-pill">Waiting...</div>
+                    </div>
                 </div>
-                <div style="height: 120px;">
+                <div style="height: 100px; margin-top: 20px;">
                     <canvas id="chartPM25"></canvas>
                 </div>
             </div>
@@ -231,26 +264,28 @@
         // --- 1. Clock Logic ---
         function updateClock() {
             const now = new Date();
-            document.getElementById('clock').textContent = now.toLocaleTimeString('th-TH', { hour12: false });
+            // Show only HH:MM for cleaner look, seconds can be distracting
+            document.getElementById('clock').textContent = now.toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
             document.getElementById('date').textContent = now.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // --- 2. Chart Configuration (With Gradient) ---
-        Chart.defaults.color = '#8b9bb4';
-        Chart.defaults.font.family = "'Kanit', sans-serif";
+        // --- 2. Chart Configuration (Soft & Clean) ---
+        Chart.defaults.color = '#636e72';
+        Chart.defaults.font.family = "'Prompt', sans-serif";
+        Chart.defaults.font.size = 11;
 
         const ctxESP = document.getElementById('chartESP32').getContext('2d');
         
-        // Gradient Setup
-        const gradientTemp = ctxESP.createLinearGradient(0, 0, 0, 400);
-        gradientTemp.addColorStop(0, 'rgba(255, 0, 85, 0.5)');
-        gradientTemp.addColorStop(1, 'rgba(255, 0, 85, 0)');
+        // Soft Gradients
+        const gradientTemp = ctxESP.createLinearGradient(0, 0, 0, 300);
+        gradientTemp.addColorStop(0, 'rgba(255, 118, 117, 0.4)');
+        gradientTemp.addColorStop(1, 'rgba(255, 118, 117, 0.05)');
 
-        const gradientHumi = ctxESP.createLinearGradient(0, 0, 0, 400);
-        gradientHumi.addColorStop(0, 'rgba(0, 242, 255, 0.5)');
-        gradientHumi.addColorStop(1, 'rgba(0, 242, 255, 0)');
+        const gradientHumi = ctxESP.createLinearGradient(0, 0, 0, 300);
+        gradientHumi.addColorStop(0, 'rgba(116, 185, 255, 0.4)');
+        gradientHumi.addColorStop(1, 'rgba(116, 185, 255, 0.05)');
 
         const chartESP = new Chart(ctxESP, {
             type: 'line',
@@ -258,25 +293,25 @@
                 labels: [],
                 datasets: [
                     {
-                        label: 'Temp (°C)',
+                        label: 'Temp',
                         data: [],
-                        borderColor: '#ff0055',
+                        borderColor: '#ff7675',
                         backgroundColor: gradientTemp,
-                        borderWidth: 3,
-                        pointBackgroundColor: '#fff',
-                        pointBorderColor: '#ff0055',
+                        borderWidth: 2,
+                        pointRadius: 0, // Cleaner look without points
+                        pointHoverRadius: 4,
                         tension: 0.4,
                         fill: true,
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Humidity (%)',
+                        label: 'Humidity',
                         data: [],
-                        borderColor: '#00f2ff',
+                        borderColor: '#74b9ff',
                         backgroundColor: gradientHumi,
-                        borderWidth: 3,
-                        pointBackgroundColor: '#fff',
-                        pointBorderColor: '#00f2ff',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
                         tension: 0.4,
                         fill: true,
                         yAxisID: 'y1'
@@ -287,18 +322,27 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'top', align: 'end' }
+                    legend: { 
+                        position: 'top', 
+                        align: 'end',
+                        labels: { usePointStyle: true, boxWidth: 8, color: '#a4b0be' }
+                    }
                 },
                 scales: {
-                    x: { grid: { display: false } },
+                    x: { 
+                        grid: { display: false },
+                        ticks: { color: '#a4b0be' }
+                    },
                     y: { 
                         position: 'left',
-                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        grid: { color: 'rgba(255,255,255,0.03)', borderDash: [5, 5] },
+                        ticks: { color: '#ff7675' },
                         suggestedMin: 20, suggestedMax: 40
                     },
                     y1: { 
                         position: 'right',
                         grid: { display: false },
+                        ticks: { color: '#74b9ff' },
                         suggestedMin: 40, suggestedMax: 100
                     }
                 }
@@ -313,8 +357,9 @@
                 datasets: [{
                     label: 'PM2.5',
                     data: [],
-                    backgroundColor: '#ffcc00',
-                    borderRadius: 4
+                    backgroundColor: '#ffeaa7',
+                    borderRadius: 3,
+                    barThickness: 6
                 }]
             },
             options: {
@@ -342,7 +387,7 @@
             chartESP.update();
 
             // Update PM2.5 Chart
-            if (chartPM.data.labels.length >= 10) {
+            if (chartPM.data.labels.length >= 15) {
                 chartPM.data.labels.shift();
                 chartPM.data.datasets[0].data.shift();
             }
@@ -354,7 +399,7 @@
         // --- 4. Simulation (PM2.5) ---
         let simPM25 = 35;
         function simulatePM25() {
-            simPM25 += (Math.random() * 6) - 3; // Random walk
+            simPM25 += (Math.random() * 4) - 2; // Slower random walk
             if(simPM25 < 5) simPM25 = 5;
             if(simPM25 > 150) simPM25 = 150;
             
@@ -365,11 +410,11 @@
             el.textContent = val;
             
             if(val <= 25) { 
-                pill.textContent = "Good Air"; pill.style.background = "rgba(0, 255, 157, 0.2)"; pill.style.color = "#00ff9d";
+                pill.textContent = "Excellent Air"; pill.style.background = "rgba(85, 239, 196, 0.15)"; pill.style.color = "#55efc4";
             } else if(val <= 50) {
-                pill.textContent = "Moderate"; pill.style.background = "rgba(255, 204, 0, 0.2)"; pill.style.color = "#ffcc00";
+                pill.textContent = "Moderate"; pill.style.background = "rgba(255, 234, 167, 0.15)"; pill.style.color = "#ffeaa7";
             } else {
-                pill.textContent = "Unhealthy"; pill.style.background = "rgba(255, 0, 85, 0.2)"; pill.style.color = "#ff0055";
+                pill.textContent = "Unhealthy"; pill.style.background = "rgba(255, 118, 117, 0.15)"; pill.style.color = "#ff7675";
             }
             return val;
         }
@@ -400,16 +445,16 @@
 
         client.onConnectionLost = () => {
             document.getElementById('status-dot').className = "dot offline";
-            document.getElementById('mqtt-status-text').textContent = "DISCONNECTED";
+            document.getElementById('mqtt-status-text').textContent = "Disconnected";
             setTimeout(connectMQTT, 5000);
         };
 
         function connectMQTT() {
-            document.getElementById('mqtt-status-text').textContent = "CONNECTING...";
+            document.getElementById('mqtt-status-text').textContent = "Connecting...";
             client.connect({
                 onSuccess: () => {
                     document.getElementById('status-dot').className = "dot online";
-                    document.getElementById('mqtt-status-text').textContent = "ONLINE (HiveMQ)";
+                    document.getElementById('mqtt-status-text').textContent = "Connected";
                     client.subscribe(mqttConfig.topic);
                 },
                 onFailure: () => setTimeout(connectMQTT, 5000),
