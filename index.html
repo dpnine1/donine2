@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PM2.5 Data</title>
+    <title>Air Quality Tracker - Chainat City</title>
 </head>
 <body>
-    <h1>PM2.5 Data for Chainat City, Thailand</h1>
-    <div id="data"></div>
+    <h1>Air Quality in Chainat City, Thailand</h1>
+    <div id="pm25-data"></div>
     <script>
-        // Fetch PM2.5 data for Chainat City
-        fetch('https://api.example.com/pm25?city=Chainat')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('data').innerText = `PM2.5 Level: ${data.pm25}`;
-            });
+        async function fetchPM25Data() {
+            const cityName = 'Chainat'; // Changed from 'Bangkok' to 'Chainat'
+            const response = await fetch(`https://api.example.com/pm25?city=${cityName}`);
+            const data = await response.json();
+            document.getElementById('pm25-data').innerText = `PM2.5 Level in ${cityName}: ${data.pm25}`;
+        }
+
+        fetchPM25Data();
     </script>
 </body>
 </html>
