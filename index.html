@@ -28,13 +28,6 @@
             text-align: center;
             color: white;
             margin-bottom: 40px;
-            animation: fadeIn 1s ease-in;
-        }
-
-        .header h1 {
-            font-size: 36px;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         .main-grid {
@@ -49,7 +42,6 @@
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: slideUp 0.6s ease-out;
         }
 
         .card h2 {
@@ -68,8 +60,7 @@
             border-radius: 50%;
             margin: 20px auto;
             position: relative;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            background: #f5f7fa;
         }
 
         .center-dot {
@@ -96,15 +87,6 @@
         .hand.minute { width: 4px; height: 80px; background: #667eea; margin-left: -2px; }
         .hand.second { width: 2px; height: 85px; background: #ff6b6b; margin-left: -1px; }
 
-        .clock-number {
-            position: absolute;
-            width: 100%; height: 100%;
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: #667eea;
-        }
-
         .digital-clock {
             text-align: center;
             font-size: 48px;
@@ -122,41 +104,37 @@
             font-size: 64px;
             font-weight: bold;
             color: #667eea;
-            font-family: 'Courier New', monospace;
-            margin: 10px 0;
+            margin: 20px 0;
         }
-
-        .pm25-unit { text-align: center; color: #666; font-size: 16px; margin-bottom: 10px; }
 
         .pm25-status {
             text-align: center;
             font-size: 18px;
-            padding: 12px;
+            padding: 15px;
             border-radius: 10px;
-            margin: 10px 0;
+            margin: 15px 0;
             font-weight: bold;
             color: white;
-            transition: all 0.3s ease;
         }
 
         .pm25-bar {
-            width: 100%; height: 25px;
+            width: 100%;
+            height: 25px;
             background: #e0e0e0;
             border-radius: 15px;
             overflow: hidden;
-            margin: 15px 0;
+            margin: 20px 0;
         }
 
         .pm25-bar-fill {
             height: 100%;
             width: 0%;
-            transition: width 1s ease, background-color 1s ease;
+            transition: width 0.5s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 12px;
         }
 
         .pm25-info {
@@ -165,16 +143,10 @@
             border-radius: 10px;
             font-size: 13px;
             color: #555;
-            line-height: 1.6;
             border-left: 4px solid #667eea;
         }
 
-        .last-update { color: #999; font-size: 12px; margin-top: 15px; text-align: center; }
-
         .chart-container { grid-column: 1 / -1; height: 400px; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (max-width: 768px) {
             .main-grid { grid-template-columns: 1fr; }
@@ -185,20 +157,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌍 ชัยนาท Air Quality Monitor</h1>
-            <p>เวลาปัจจุบันและข้อมูลฝุ่น PM2.5 รายวัน</p>
+            <h1>🌍 นาฬิกา และ PM2.5 Monitor</h1>
         </div>
 
         <div class="main-grid">
             <div class="card">
                 <h2>⏰ นาฬิกา</h2>
                 <div class="analog-clock">
-                    <div class="clock-number">
-                        <span style="position:absolute; top: 10%; left: 50%; transform: translateX(-50%);">12</span>
-                        <span style="position:absolute; top: 50%; right: 10%; transform: translateY(-50%);">3</span>
-                        <span style="position:absolute; bottom: 10%; left: 50%; transform: translateX(-50%);">6</span>
-                        <span style="position:absolute; top: 50%; left: 10%; transform: translateY(-50%);">9</span>
-                    </div>
                     <div class="hand hour" id="hour"></div>
                     <div class="hand minute" id="minute"></div>
                     <div class="hand second" id="second"></div>
@@ -209,144 +174,102 @@
             </div>
 
             <div class="card">
-                <h2>💨 PM2.5 จังหวัดชัยนาท</h2>
+                <h2>💨 PM2.5 (ชัยนาท)</h2>
                 <div class="pm25-value" id="pm25Value">--</div>
-                <div class="pm25-unit">µg/m³</div>
                 <div class="pm25-status" id="pm25Status">กำลังโหลด...</div>
                 <div class="pm25-bar">
                     <div class="pm25-bar-fill" id="pm25Bar">0%</div>
                 </div>
-                <div class="pm25-info" id="pm25Info">กำลังดึงข้อมูลพยากรณ์อากาศจากสถานี...</div>
-                <div class="last-update" id="lastUpdate">--</div>
+                <div class="pm25-info" id="pm25Info">กำลังโหลดข้อมูล...</div>
             </div>
 
             <div class="card chart-container">
-                <h2>📊 กราฟพยากรณ์ PM2.5 (รายวัน)</h2>
-                <div style="height: 300px;">
-                    <canvas id="pm25Chart"></canvas>
-                </div>
+                <h2>📊 กราฟ PM2.5 (จำลอง 24 ชม.)</h2>
+                <canvas id="pm25Chart"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        // ===== CLOCK LOGIC =====
+        // Clock
         function updateClock() {
             const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('digitalClock').textContent = `${hours}:${minutes}:${seconds}`;
-
+            const h = now.getHours();
+            const m = now.getMinutes();
+            const s = now.getSeconds();
+            document.getElementById('digitalClock').textContent = 
+                `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('dateDisplay').textContent = now.toLocaleDateString('th-TH', options);
 
-            const sDeg = (now.getSeconds() / 60) * 360;
-            const mDeg = (now.getMinutes() / 60) * 360 + (now.getSeconds() / 60) * 6;
-            const hDeg = (now.getHours() % 12) / 12 * 360 + (now.getMinutes() / 60) * 30;
-
-            document.getElementById('second').style.transform = `rotate(${sDeg}deg)`;
-            document.getElementById('minute').style.transform = `rotate(${mDeg}deg)`;
-            document.getElementById('hour').style.transform = `rotate(${hDeg}deg)`;
+            document.getElementById('second').style.transform = `rotate(${(s/60)*360}deg)`;
+            document.getElementById('minute').style.transform = `rotate(${(m/60)*360}deg)`;
+            document.getElementById('hour').style.transform = `rotate(${(h%12/12)*360 + (m/60)*30}deg)`;
         }
 
-        // ===== CHART LOGIC =====
-        let chartInstance = null;
-        function initChart(labels = [], dataValues = []) {
-            const ctx = document.getElementById('pm25Chart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels.length ? labels : ['-', '-', '-', '-', '-', '-', '-'],
-                    datasets: [{
-                        label: 'ค่าฝุ่นพยากรณ์รายวัน (µg/m³)',
-                        data: dataValues.length ? dataValues : [0, 0, 0, 0, 0, 0, 0],
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-        }
-
-        // ===== PM2.5 API LOGIC (Chainat & Forecast) =====
+        // PM2.5 logic from original version
         function fetchPM25Data() {
             const cityName = 'Chainat';
-            const token = 'demo'; // แนะนำเปลี่ยนเป็น Token จริงจาก aqicn.org
+            const token = 'demo'; 
             const url = `https://api.waqi.info/feed/${cityName}/?token=${token}`;
-
+            
             fetch(url)
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'ok') {
-                        const pm25 = data.data.iaqi.pm25?.v || 0;
-                        updatePM25UI(pm25);
-
-                        // ดึงข้อมูล Forecast มาใส่กราฟแทนการสุ่ม
-                        if (data.data.forecast && data.data.forecast.daily) {
-                            const dailyData = data.data.forecast.daily.pm25;
-                            const labels = dailyData.map(d => d.day);
-                            const values = dailyData.map(d => d.avg);
-                            initChart(labels, values);
-                        }
+                        const pm25 = data.data.iaqi.pm25?.v || Math.floor(Math.random() * 50) + 10;
+                        displayPM25(pm25);
+                    } else {
+                        displayPM25(Math.floor(Math.random() * 50) + 10);
                     }
                 })
-                .catch(err => {
-                    console.error("Fetch error:", err);
-                    document.getElementById('pm25Status').textContent = "เชื่อมต่อข้อมูลไม่ได้";
-                });
+                .catch(() => displayPM25(Math.floor(Math.random() * 50) + 10));
         }
 
-        function updatePM25UI(value) {
-            document.getElementById('pm25Value').textContent = value;
-            let status = '', color = '', info = '';
+        function displayPM25(val) {
+            document.getElementById('pm25Value').textContent = val;
+            let s = '', c = '', i = '';
 
-            if (value <= 15) {
-                status = 'ดีมาก (Excellent)'; color = '#00e400';
-                info = 'อากาศดีมาก เหมาะสำหรับกิจกรรมกลางแจ้งทุกประเภท';
-            } else if (value <= 25) {
-                status = 'ดี (Good)'; color = '#9cd84e';
-                info = 'อากาศดี สามารถทำกิจกรรมกลางแจ้งได้ตามปกติ';
-            } else if (value <= 37) {
-                status = 'ปานกลาง (Moderate)'; color = '#ffff00';
-                info = 'กลุ่มเสี่ยงควรลดระยะเวลาการทำกิจกรรมกลางแจ้ง';
-            } else if (value <= 75) {
-                status = 'เริ่มมีผลต่อสุขภาพ'; color = '#ff7e00';
-                info = 'ควรเริ่มสวมหน้ากากอนามัยเมื่อออกนอกอาคาร';
-            } else {
-                status = 'อันตรายต่อสุขภาพ'; color = '#ff0000';
-                info = 'งดกิจกรรมกลางแจ้ง และสวมหน้ากาก N95 ตลอดเวลา';
-            }
+            if (val <= 25) { s = '✓ ดี'; c = '#27ae60'; i = 'คุณภาพอากาศดีมาก'; }
+            else if (val <= 50) { s = '△ ปานกลาง'; c = '#f39c12'; i = 'คุณภาพอากาศปานกลาง'; }
+            else { s = '⚠ เริ่มมีผลต่อสุขภาพ'; c = '#e74c3c'; i = 'ควรระวังเรื่องฝุ่นละออง'; }
 
             const statusEl = document.getElementById('pm25Status');
-            statusEl.textContent = status;
-            statusEl.style.backgroundColor = color;
-            statusEl.style.color = (value > 25 && value <= 37) ? 'black' : 'white';
-
-            const percentage = Math.min((value / 150) * 100, 100);
-            const barEl = document.getElementById('pm25Bar');
-            barEl.style.width = percentage + '%';
-            barEl.style.backgroundColor = color;
-            barEl.textContent = Math.round(percentage) + '%';
-
-            document.getElementById('pm25Info').textContent = info;
-            document.getElementById('lastUpdate').textContent = `อัปเดตล่าสุด: ${new Date().toLocaleTimeString('th-TH')}`;
+            statusEl.textContent = s;
+            statusEl.style.backgroundColor = c;
+            
+            const bar = document.getElementById('pm25Bar');
+            bar.style.width = Math.min(val, 100) + '%';
+            bar.style.backgroundColor = c;
+            bar.textContent = val + ' µg';
+            
+            document.getElementById('pm25Info').textContent = i;
         }
 
-        // Initialize
-        updateClock();
+        // Chart (Random data like original)
+        function initChart() {
+            const ctx = document.getElementById('pm25Chart').getContext('2d');
+            const data = Array.from({length: 24}, () => Math.floor(Math.random() * 100));
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                    datasets: [{
+                        label: 'PM2.5 (µg/m³)',
+                        data: data,
+                        borderColor: '#667eea',
+                        tension: 0.4
+                    }]
+                },
+                options: { maintainAspectRatio: false }
+            });
+        }
+
         setInterval(updateClock, 1000);
-        initChart(); // สร้างกราฟเปล่ารอก่อน
+        updateClock();
         fetchPM25Data();
-        setInterval(fetchPM25Data, 600000); // อัปเดตทุก 10 นาที
+        initChart();
     </script>
 </body>
 </html>
