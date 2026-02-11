@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chainat Smart Monitor - Split View</title>
+    <title>Chainat Smart Monitor - Random Simulation</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
@@ -34,16 +34,10 @@
         .val { font-size: 2.5rem; font-weight: bold; font-family: 'Courier New', monospace; text-align: center; }
         .unit { font-size: 0.9rem; opacity: 0.6; text-align: center; margin-bottom: 10px; }
         
-        /* Status Colors */
         .t-color { color: #ff4b2b; } .h-color { color: #00d2ff; } .p-color { color: #f8ff00; }
         .clock { font-size: 3rem; color: #4ecca3; font-weight: bold; text-align: center; }
         
-        /* Graph Layout */
-        .graph-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
+        .graph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .chart-card { height: 350px; }
 
         #mqtt-status { font-size: 0.7rem; float: right; }
@@ -60,7 +54,7 @@
     <div class="main-grid">
         <div class="card">
             <span id="mqtt-status"><span class="dot offline" id="status-dot"></span>MQTT Offline</span>
-            <h2>🌡️ ESP32 Sensor</h2>
+            <h2>🌡️ ESP32 Sensor (Live)</h2>
             <div style="display: flex; justify-content: space-around;">
                 <div><div class="val t-color" id="txt-temp">--</div><div class="unit">°C Temp</div></div>
                 <div><div class="val h-color" id="txt-humi">--</div><div class="unit">% Humidity</div></div>
@@ -68,10 +62,10 @@
         </div>
 
         <div class="card">
-            <h2>💨 PM2.5 Chainat</h2>
+            <h2>💨 PM2.5 (Simulated)</h2>
             <div class="val p-color" id="txt-pm25">--</div>
-            <div class="unit">µg/m³ (Live API)</div>
-            <div id="pm25-status" style="text-align: center; font-size: 0.8rem; font-weight: bold; border-radius: 5px; padding: 4px;">กำลังโหลด...</div>
+            <div class="unit">µg/m³ (Random Walk)</div>
+            <div id="pm25-status" style="text-align: center; font-size: 0.8rem; font-weight: bold; border-radius: 5px; padding: 4px;">จำลองข้อมูล...</div>
         </div>
 
         <div class="card">
@@ -83,11 +77,11 @@
 
     <div class="graph-grid">
         <div class="card chart-card">
-            <h2>📊 ESP32: Temp & Humidity</h2>
+            <h2>📊 ESP32 Data (MQTT)</h2>
             <div style="height: 260px;"><canvas id="chartESP32"></canvas></div>
         </div>
         <div class="card chart-card">
-            <h2>📊 Air Quality: PM2.5 Trend</h2>
+            <h2>📊 PM2.5 Trend (Simulation)</h2>
             <div style="height: 260px;"><canvas id="chartPM25"></canvas></div>
         </div>
     </div>
@@ -102,11 +96,10 @@
     }
     setInterval(updateClock, 1000);
 
-    // --- 2. Charts Initialization ---
+    // --- 2. Charts Setup ---
     const MAX_DATA = 15;
     const commonOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: { legend: { labels: { color: 'white', font: { size: 10 } } } },
         scales: { 
             x: { ticks: { color: '#888', font: { size: 10 } }, grid: { display: false } },
@@ -114,8 +107,7 @@
         }
     };
 
-    const ctxESP = document.getElementById('chartESP32').getContext('2d');
-    const chartESP = new Chart(ctxESP, {
+    const chartESP = new Chart(document.getElementById('chartESP32'), {
         type: 'line',
         data: {
             labels: [],
@@ -124,25 +116,39 @@
                 { label: 'Humi', data: [], borderColor: '#00d2ff', yAxisID: 'y1', tension: 0.3 }
             ]
         },
-        options: {
-            ...commonOptions,
-            scales: {
-                ...commonOptions.scales,
-                y: { position: 'left', ticks: { color: '#ff4b2b' } },
-                y1: { position: 'right', ticks: { color: '#00d2ff' }, grid: { drawOnChartArea: false } }
-            }
-        }
+        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { position: 'left' }, y1: { position: 'right', grid: { drawOnChartArea: false } } } }
     });
 
-    const ctxPM = document.getElementById('chartPM25').getContext('2d');
-    const chartPM = new Chart(ctxPM, {
-        type: 'bar', // เปลี่ยนเป็นกราฟแท่งเพื่อให้ดูต่างกัน
+    const chartPM = new Chart(document.getElementById('chartPM25'), {
+        type: 'bar',
         data: {
             labels: [],
-            datasets: [{ label: 'PM2.5', data: [], backgroundColor: 'rgba(248, 255, 0, 0.5)', borderColor: '#f8ff00', borderWidth: 1 }]
+            datasets: [{ label: 'PM2.5 (Sim)', data: [], backgroundColor: 'rgba(248, 255, 0, 0.4)', borderColor: '#f8ff00', borderWidth: 1 }]
         },
         options: commonOptions
     });
+
+    // --- 3. PM2.5 Random Logic ---
+    let currentPM25 = 25; // เริ่มต้นที่ 25
+    function simulatePM25() {
+        // สุ่มแบบ Random Walk (เพิ่มหรือลดทีละนิดเพื่อให้กราฟไม่กระโดด)
+        const change = (Math.random() * 4) - 2; // สุ่มค่าระหว่าง -2 ถึง +2
+        currentPM25 += change;
+        
+        // คุมให้อยู่ในช่วง 10 - 150
+        if (currentPM25 < 10) currentPM25 = 10;
+        if (currentPM25 > 150) currentPM25 = 150;
+
+        const val = Math.round(currentPM25);
+        document.getElementById('txt-pm25').textContent = val;
+        
+        const st = document.getElementById('pm25-status');
+        if(val <= 25) { st.textContent = "ดีมาก"; st.style.color = "#27ae60"; }
+        else if(val <= 50) { st.textContent = "ปานกลาง"; st.style.color = "#f39c12"; }
+        else { st.textContent = "เริ่มมีผลต่อสุขภาพ"; st.style.color = "#ff416c"; }
+        
+        return val;
+    }
 
     function updateCharts(time, t, h, p) {
         [chartESP, chartPM].forEach(c => {
@@ -155,47 +161,31 @@
         chartESP.data.datasets[0].data.push(t);
         chartESP.data.datasets[1].data.push(h);
         chartPM.data.datasets[0].data.push(p);
-        chartESP.update();
-        chartPM.update();
+        chartESP.update(); chartPM.update();
     }
 
-    // --- 3. PM2.5 API ---
-    let latestPM25 = 0;
-    function getPM25() {
-        fetch('https://api.waqi.info/feed/Chainat/?token=demo')
-        .then(r => r.json()).then(d => {
-            if(d.status === 'ok') {
-                latestPM25 = d.data.iaqi.pm25.v;
-                document.getElementById('txt-pm25').textContent = latestPM25;
-                const st = document.getElementById('pm25-status');
-                if(latestPM25 <= 25) { st.textContent = "ดีมาก"; st.style.color = "#27ae60"; }
-                else if(latestPM25 <= 50) { st.textContent = "ปานกลาง"; st.style.color = "#f39c12"; }
-                else { st.textContent = "มีผลต่อสุขภาพ"; st.style.color = "#ff416c"; }
-            }
-        });
-    }
-    getPM25();
-    setInterval(getPM25, 600000);
-
-    // --- 4. MQTT ---
+    // --- 4. MQTT Connection ---
     const mqttCfg = {
         host: "1775d011329846b5a98c94a70f743969.s1.eu.hivemq.cloud",
         port: 8884,
         user: "dpnine", pass: "nayNAY08", topic: "home/sensor"
     };
 
-    const client = new Paho.MQTT.Client(mqttCfg.host, mqttCfg.port, "web_" + Math.random().toString(16).substr(2, 5));
+    const client = new Paho.MQTT.Client(mqttCfg.host, mqttCfg.port, "web_sim_" + Math.random().toString(16).substr(2, 5));
+    
     client.onMessageArrived = (msg) => {
         const payload = JSON.parse(msg.payloadString);
+        const now = new Date().toLocaleTimeString('th-TH', { hour12: false });
+        const pVal = simulatePM25(); // สุ่มค่าใหม่ทุกครั้งที่ MQTT อัปเดต
+        
         document.getElementById('txt-temp').textContent = payload.temp;
         document.getElementById('txt-humi').textContent = payload.humidity;
-        const now = new Date().toLocaleTimeString('th-TH', { hour12: false });
-        updateCharts(now, payload.temp, payload.humidity, latestPM25);
+        
+        updateCharts(now, payload.temp, payload.humidity, pVal);
     };
 
     client.onConnectionLost = () => {
         document.getElementById('status-dot').className = "dot offline";
-        document.getElementById('mqtt-status').lastChild.textContent = " Offline";
         setTimeout(conn, 5000);
     };
 
