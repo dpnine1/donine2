@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clock and Air Quality Display</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #clock { font-size: 2em; margin-top: 20px; }
+        #airQuality { font-size: 1.2em; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div id="clock"></div>
+    <div id="airQuality"></div>
+
+    <script>
+        // Function to update the clock every second
+        function updateClock() {
+            const now = new Date();
+            const formattedTime = now.toISOString().slice(0, 19).replace('T', ' ');
+            document.getElementById('clock').innerText = formattedTime;
+        }
+        setInterval(updateClock, 1000);
+        updateClock(); // initial call
+
+        // Function to fetch air quality data (dummy data used here)
+        function fetchAirQuality() {
+            // For now, setting a constant value; you can replace it with real API calls.
+            const airQuality = "คุณภาพอากาศไม่ดี ผู้ที่มีปัญหาเรื่องสุขภาพควรใส่หน้ากากอนามัย";
+            document.getElementById('airQuality').innerText = airQuality;
+        }
+        fetchAirQuality(); // initial call
+    </script>
+</body>
+</html>
