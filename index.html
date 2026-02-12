@@ -3,36 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor Dashboard</title>
+    <title>Smart Sensor Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; height: 400px; width: 100%; }
+        .btn-active { background-color: #4f46e5 !important; color: white !important; border-color: #4f46e5 !important; }
+        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+    </style>
 </head>
-<body class="bg-slate-100 p-8">
+<body class="bg-slate-50 min-h-screen text-slate-900">
 
-    <div class="max-w-4xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-slate-800">ระบบติดตามเซนเซอร์</h1>
-            <div id="status-badge" class="px-4 py-2 bg-slate-200 text-slate-600 rounded-full text-sm font-semibold">
-                รอการเชื่อมต่อ...
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Sensor Real-time Monitor</h1>
+                <p class="text-slate-500">ติดตามค่าอุณหภูมิและความชื้นแบบเรียลไทม์จากระบบคลาวด์</p>
+            </div>
+            <div id="status-badge" class="transition-all duration-300 px-5 py-2 bg-white shadow-sm border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-3">
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-slate-500"></span>
+                </span>
+                กำลังเริ่มต้น...
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <p class="text-slate-500 font-medium">อุณหภูมิ</p>
-                <h2 id="latest-temp" class="text-5xl font-bold text-orange-500 my-2">-- <span class="text-3xl text-slate-400">°C</span></h2>
-                <p id="time-temp" class="text-xs text-slate-400 italic">อัปเดตล่าสุด: --</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            <div class="glass-card p-8 rounded-3xl shadow-xl border border-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path></svg>
+                </div>
+                <p class="text-orange-600 font-bold uppercase tracking-wider text-sm mb-2">Temperature</p>
+                <div class="flex items-baseline gap-2">
+                    <h2 id="latest-temp" class="text-6xl font-extrabold text-slate-800 tracking-tighter">--</h2>
+                    <span class="text-3xl text-slate-400 font-light">°C</span>
+                </div>
+                <p id="time-temp" class="text-sm text-slate-400 mt-4 italic">Waiting for data...</p>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <p class="text-slate-500 font-medium">ความชื้น</p>
-                <h2 id="latest-hum" class="text-5xl font-bold text-blue-500 my-2">-- <span class="text-3xl text-slate-400">%</span></h2>
-                <p id="time-hum" class="text-xs text-slate-400 italic">อัปเดตล่าสุด: --</p>
+
+            <div class="glass-card p-8 rounded-3xl shadow-xl border border-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 00-1 1v1a1 1 0 102 0V3a1 1 0 00-1-1zM4 4h3a3 3 0 006 0h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"></path></svg>
+                </div>
+                <p class="text-blue-600 font-bold uppercase tracking-wider text-sm mb-2">Humidity</p>
+                <div class="flex items-baseline gap-2">
+                    <h2 id="latest-hum" class="text-6xl font-extrabold text-slate-800 tracking-tighter">--</h2>
+                    <span class="text-3xl text-slate-400 font-light">%</span>
+                </div>
+                <p id="time-hum" class="text-sm text-slate-400 mt-4 italic">Waiting for data...</p>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <canvas id="sensorChart" height="150"></canvas>
+        <div class="mb-6 overflow-x-auto pb-2">
+            <div class="flex flex-nowrap md:flex-wrap gap-2 min-w-max" id="range-buttons">
+                <button onclick="changeRange('realtime')" data-range="realtime" class="btn-range px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-all font-medium text-sm">Realtime</button>
+                <button onclick="changeRange('15m')" data-range="15m" class="btn-range px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-all font-medium text-sm">15 นาที</button>
+                <button onclick="changeRange('1h')" data-range="1h" class="btn-range px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-all font-medium text-sm">1 ชม.</button>
+                <button onclick="changeRange('6h')" data-range="6h" class="btn-range px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-all font-medium text-sm">6 ชม.</button>
+                <button onclick="changeRange('24h')" data-range="24h" class="btn-range px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-all font-medium text-sm">24 ชม.</button>
+                <button onclick="changeRange('7d')" data-range="7d" class="btn-range px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-all font-medium text-sm">7 วัน</button>
+                <button onclick="changeRange('1M')" data-range="1M" class="btn-range px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-all font-medium text-sm">1 เดือน</button>
+                <button onclick="changeRange('3M')" data-range="3M" class="btn-range px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-all font-medium text-sm">3 เดือน</button>
+            </div>
+        </div>
+
+        <div class="glass-card p-6 md:p-8 rounded-3xl shadow-xl border border-white">
+            <div class="chart-container">
+                <canvas id="sensorChart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -41,7 +83,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
         import { getFirestore, collection, query, orderBy, limit, onSnapshot, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-        // CONFIG ของคุณ
+        // Firebase Config (คงเดิม)
         const firebaseConfig = {
             apiKey: "AIzaSyCO_62NI-RwdgdkANDxG71o0MJH7wd2CFE",
             authDomain: "dpcloud-67cdb.firebaseapp.com",
@@ -59,92 +101,154 @@
         let unsubscribe = null;
         let sensorChart;
 
-        // ฟังก์ชันช่วยคำนวณเวลาถอยหลัง
+        // ฟังก์ชันคำนวณเวลาย้อนหลังที่ยืดหยุ่นขึ้น
         function calculateStartTime(range) {
             const now = new Date();
-            if (range === '24h') return new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            return new Date(now.getTime() - 60 * 60 * 1000); // Default 1 ชม.
+            switch(range) {
+                case '15m': return new Date(now.getTime() - 15 * 60 * 1000);
+                case '1h': return new Date(now.getTime() - 60 * 60 * 1000);
+                case '6h': return new Date(now.getTime() - 6 * 60 * 60 * 1000);
+                case '24h': return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                case '7d': return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                case '1M': return new Date(now.setMonth(now.getMonth() - 1));
+                case '3M': return new Date(now.setMonth(now.getMonth() - 3));
+                default: return new Date(now.getTime() - 15 * 60 * 1000);
+            }
         }
 
-        // เริ่มต้นสร้างกราฟ
-        const ctx = document.getElementById('sensorChart').getContext('2d');
-        sensorChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    { label: 'อุณหภูมิ (°C)', data: [], borderColor: '#f97316', tension: 0.4 },
-                    { label: 'ความชื้น (%)', data: [], borderColor: '#3b82f6', tension: 0.4 }
-                ]
-            }
-        });
+        // ตั้งค่า Chart.js แบบ Gradient
+        function initChart() {
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            
+            const tempGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            tempGradient.addColorStop(0, 'rgba(249, 115, 22, 0.2)');
+            tempGradient.addColorStop(1, 'rgba(249, 115, 22, 0)');
 
-        // ฟังก์ชันโหลดข้อมูล (โค้ดที่คุณส่งมา)
-        function loadData(range) {
-            if (unsubscribe) { unsubscribe(); }
+            const humGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            humGradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+            humGradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'อุณหภูมิ (°C)',
+                            borderColor: '#f97316',
+                            backgroundColor: tempGradient,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            borderWidth: 3,
+                            data: []
+                        },
+                        {
+                            label: 'ความชื้น (%)',
+                            borderColor: '#3b82f6',
+                            backgroundColor: humGradient,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            borderWidth: 3,
+                            data: []
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: false, grid: { color: '#f1f5f9' } }
+                    }
+                }
+            });
+        }
+
+        window.loadData = function(range) {
+            if (unsubscribe) unsubscribe();
+
+            // จัดการ UI ปุ่ม
+            document.querySelectorAll('.btn-range').forEach(btn => {
+                btn.classList.toggle('btn-active', btn.dataset.range === range);
+            });
 
             const statusBadge = document.getElementById('status-badge');
-            statusBadge.innerHTML = `กำลังโหลด...`;
+            statusBadge.innerHTML = `<span class="animate-spin h-3 w-3 border-2 border-indigo-500 border-t-transparent rounded-full"></span> กำลังโหลด...`;
 
             let q;
             if (range === 'realtime') {
-                q = query(collection(db, "sensor_logs"), orderBy("timestamp", "desc"), limit(50));
+                q = query(collection(db, "sensor_logs"), orderBy("timestamp", "desc"), limit(30));
             } else {
                 const startTime = calculateStartTime(range);
                 q = query(
-                    collection(db, "sensor_logs"), 
-                    where("timestamp", ">=", Timestamp.fromDate(startTime)), 
-                    orderBy("timestamp", "desc"), 
-                    limit(1000)
+                    collection(db, "sensor_logs"),
+                    where("timestamp", ">=", Timestamp.fromDate(startTime)),
+                    orderBy("timestamp", "desc"),
+                    limit(1500)
                 );
             }
 
             unsubscribe = onSnapshot(q, (snapshot) => {
                 const rawData = [];
-                snapshot.forEach((doc) => { rawData.push(doc.data()); });
-
+                snapshot.forEach(doc => rawData.push(doc.data()));
+                
                 const sortedData = rawData.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
-
+                
                 const labels = [];
-                const tempData = [];
-                const humData = [];
+                const temps = [];
+                const hums = [];
 
-                sortedData.forEach((data) => {
-                    const dateObj = data.timestamp.toDate();
-                    const format = ['24h'].includes(range) ? 'HH:mm' : 'HH:mm:ss';
-                    
-                    labels.push(moment(dateObj).format(format));
-                    tempData.push(data.temperature);
-                    humData.push(data.humidity);
+                sortedData.forEach(data => {
+                    const date = data.timestamp.toDate();
+                    // ปรับ format เวลาตามช่วงที่เลือก
+                    const format = ['7d', '1M', '3M'].includes(range) ? 'DD MMM HH:mm' : 'HH:mm:ss';
+                    labels.push(moment(date).format(format));
+                    temps.push(data.temperature);
+                    hums.push(data.humidity);
                 });
 
+                // Update กราฟ
+                sensorChart.data.labels = labels;
+                sensorChart.data.datasets[0].data = temps;
+                sensorChart.data.datasets[1].data = hums;
+                sensorChart.update('none'); // update แบบไม่ต้องมี animation เพื่อความลื่นไหล
+
+                // Update ค่าล่าสุด
                 if (sortedData.length > 0) {
                     const last = sortedData[sortedData.length - 1];
-                    document.getElementById('latest-temp').innerHTML = `${last.temperature.toFixed(1)} <span class="text-3xl text-slate-400 font-medium">°C</span>`;
-                    document.getElementById('latest-hum').innerHTML = `${last.humidity.toFixed(1)} <span class="text-3xl text-slate-400 font-medium">%</span>`;
-                    const updateText = `อัปเดตล่าสุด: ${moment().format('HH:mm:ss')}`;
-                    document.getElementById('time-temp').innerText = updateText;
-                    document.getElementById('time-hum').innerText = updateText;
+                    document.getElementById('latest-temp').innerText = last.temperature.toFixed(1);
+                    document.getElementById('latest-hum').innerText = last.humidity.toFixed(1);
+                    const nowText = `อัปเดตเมื่อ: ${moment().format('HH:mm:ss')}`;
+                    document.getElementById('time-temp').innerText = nowText;
+                    document.getElementById('time-hum').innerText = nowText;
                 }
 
-                sensorChart.data.labels = labels;
-                sensorChart.data.datasets[0].data = tempData;
-                sensorChart.data.datasets[1].data = humData;
-                sensorChart.update();
-
-                statusBadge.innerHTML = `ออนไลน์ (${snapshot.size} รายการ)`;
-                statusBadge.className = 'px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-semibold border border-green-200';
-            }, (error) => {
-                console.error("Error loading data:", error);
-                statusBadge.innerText = "เกิดข้อผิดพลาด!";
+                statusBadge.innerHTML = `
+                    <span class="flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>
+                    เชื่อมต่ออยู่ (${range})
+                `;
+            }, (err) => {
+                console.error(err);
+                statusBadge.innerText = "Error: " + err.message;
             });
         }
 
-        // ลงชื่อเข้าใช้และเริ่มโหลดข้อมูล
-        signInAnonymously(auth).then(() => {
-            loadData('realtime');
-        }).catch((err) => console.error("Auth error:", err));
+        // สำหรับเรียกจากปุ่ม HTML
+        window.changeRange = function(range) {
+            loadData(range);
+        }
 
+        // เริ่มต้นการทำงาน
+        initChart();
+        signInAnonymously(auth).then(() => {
+            loadData('realtime'); // เปิดหน้าเว็บมาให้แสดงเรียลไทม์เลย
+        });
     </script>
 </body>
 </html>
