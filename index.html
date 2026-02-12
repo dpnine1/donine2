@@ -1,91 +1,150 @@
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, query, orderBy, limit, onSnapshot, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+</head>
+<body class="bg-slate-100 p-8">
 
-    // ==========================================
-    // 1. นำ Web Config จริงมาใส่ตรงนี้ (ห้ามใช้ Private Key)
-    // ==========================================
-    const firebaseConfig = {
-        apiKey: "AIzaSyCO_62NI-RwdgdkANDxG71o0MJH7wd2CFE", // คัดลอกมาจาก Firebase Console
-        authDomain: "dpcloud-67cdb.firebaseapp.com",
-        projectId: "dpcloud-67cdb",
-        storageBucket: "dpcloud-67cdb.firebasestorage.app",
-        messagingSenderId: "207464024544",
-        appId: "1:207464024544:web:7affe28fde0088a374c385",
-        measurementId: "G-7S49QQ638W"
-    };
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">ระบบติดตามเซนเซอร์</h1>
+            <div id="status-badge" class="px-4 py-2 bg-slate-200 text-slate-600 rounded-full text-sm font-semibold">
+                รอการเชื่อมต่อ...
+            </div>
+        </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <p class="text-slate-500 font-medium">อุณหภูมิ</p>
+                <h2 id="latest-temp" class="text-5xl font-bold text-orange-500 my-2">-- <span class="text-3xl text-slate-400">°C</span></h2>
+                <p id="time-temp" class="text-xs text-slate-400 italic">อัปเดตล่าสุด: --</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <p class="text-slate-500 font-medium">ความชื้น</p>
+                <h2 id="latest-hum" class="text-5xl font-bold text-blue-500 my-2">-- <span class="text-3xl text-slate-400">%</span></h2>
+                <p id="time-hum" class="text-xs text-slate-400 italic">อัปเดตล่าสุด: --</p>
+            </div>
+        </div>
 
-    // [ส่วนของ Chart.js และ ฟังก์ชัน calculateStartTime ใช้โค้ดเดิมของคุณได้เลย]
-    // ... (โค้ดส่วนตั้งค่ากราฟ) ...
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <canvas id="sensorChart" height="150"></canvas>
+        </div>
+    </div>
 
-    // ==========================================
-    // 3. ปรับปรุง loadData เพื่อให้เรียงลำดับเวลาบนกราฟถูกต้อง
-    // ==========================================
-    function loadData(range) {
-        if (unsubscribe) { unsubscribe(); }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, limit, onSnapshot, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-        const statusBadge = document.getElementById('status-badge');
-        statusBadge.innerHTML = `<span class="animate-spin h-4 w-4 border-2 border-slate-500 border-t-transparent rounded-full"></span> กำลังโหลด...`;
+        // CONFIG ของคุณ
+        const firebaseConfig = {
+            apiKey: "AIzaSyCO_62NI-RwdgdkANDxG71o0MJH7wd2CFE",
+            authDomain: "dpcloud-67cdb.firebaseapp.com",
+            projectId: "dpcloud-67cdb",
+            storageBucket: "dpcloud-67cdb.firebasestorage.app",
+            messagingSenderId: "207464024544",
+            appId: "1:207464024544:web:7affe28fde0088a374c385",
+            measurementId: "G-7S49QQ638W"
+        };
 
-        let q;
-        if (range === 'realtime') {
-            q = query(collection(db, "sensor_logs"), orderBy("timestamp", "desc"), limit(50));
-        } else {
-            const startTime = calculateStartTime(range);
-            q = query(
-                collection(db, "sensor_logs"), 
-                where("timestamp", ">=", startTime), 
-                orderBy("timestamp", "desc"), 
-                limit(1000)
-            );
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let unsubscribe = null;
+        let sensorChart;
+
+        // ฟังก์ชันช่วยคำนวณเวลาถอยหลัง
+        function calculateStartTime(range) {
+            const now = new Date();
+            if (range === '24h') return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            return new Date(now.getTime() - 60 * 60 * 1000); // Default 1 ชม.
         }
 
-        unsubscribe = onSnapshot(q, (snapshot) => {
-            const rawData = [];
-            snapshot.forEach((doc) => {
-                rawData.push(doc.data());
-            });
+        // เริ่มต้นสร้างกราฟ
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        sensorChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'อุณหภูมิ (°C)', data: [], borderColor: '#f97316', tension: 0.4 },
+                    { label: 'ความชื้น (%)', data: [], borderColor: '#3b82f6', tension: 0.4 }
+                ]
+            }
+        });
 
-            // เรียงข้อมูลจาก อดีต -> ปัจจุบัน เพื่อให้กราฟแสดงผลจากซ้ายไปขวา
-            const sortedData = rawData.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
+        // ฟังก์ชันโหลดข้อมูล (โค้ดที่คุณส่งมา)
+        function loadData(range) {
+            if (unsubscribe) { unsubscribe(); }
 
-            const labels = [];
-            const tempData = [];
-            const humData = [];
+            const statusBadge = document.getElementById('status-badge');
+            statusBadge.innerHTML = `กำลังโหลด...`;
 
-            sortedData.forEach((data) => {
-                const dateObj = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
-                const format = ['24h', '3d', '7d', '1M', '3M'].includes(range) ? 'DD/MM HH:mm' : 'HH:mm:ss';
-                
-                labels.push(moment(dateObj).format(format));
-                tempData.push(data.temperature);
-                humData.push(data.humidity);
-            });
-
-            // อัปเดตตัวเลขล่าสุด (ใช้ข้อมูลตัวสุดท้ายที่เพิ่งได้มา)
-            if (sortedData.length > 0) {
-                const last = sortedData[sortedData.length - 1];
-                document.getElementById('latest-temp').innerHTML = `${last.temperature.toFixed(1)} <span class="text-3xl text-slate-400 font-medium">°C</span>`;
-                document.getElementById('latest-hum').innerHTML = `${last.humidity.toFixed(1)} <span class="text-3xl text-slate-400 font-medium">%</span>`;
-                const updateText = `อัปเดตล่าสุด: ${moment().format('HH:mm:ss')}`;
-                document.getElementById('time-temp').innerText = updateText;
-                document.getElementById('time-hum').innerText = updateText;
+            let q;
+            if (range === 'realtime') {
+                q = query(collection(db, "sensor_logs"), orderBy("timestamp", "desc"), limit(50));
+            } else {
+                const startTime = calculateStartTime(range);
+                q = query(
+                    collection(db, "sensor_logs"), 
+                    where("timestamp", ">=", Timestamp.fromDate(startTime)), 
+                    orderBy("timestamp", "desc"), 
+                    limit(1000)
+                );
             }
 
-            sensorChart.data.labels = labels;
-            sensorChart.data.datasets[0].data = tempData;
-            sensorChart.data.datasets[1].data = humData;
-            sensorChart.update();
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const rawData = [];
+                snapshot.forEach((doc) => { rawData.push(doc.data()); });
 
-            statusBadge.innerHTML = `<span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span> ออนไลน์ (${snapshot.size} รายการ)`;
-            statusBadge.className = 'px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-semibold flex items-center gap-2 border border-green-200';
-        });
-    }
+                const sortedData = rawData.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
 
-    // [ส่วนจัดการปุ่มกดและ signInAnonymously ใช้โค้ดเดิมของคุณได้เลย]
-</script>
+                const labels = [];
+                const tempData = [];
+                const humData = [];
+
+                sortedData.forEach((data) => {
+                    const dateObj = data.timestamp.toDate();
+                    const format = ['24h'].includes(range) ? 'HH:mm' : 'HH:mm:ss';
+                    
+                    labels.push(moment(dateObj).format(format));
+                    tempData.push(data.temperature);
+                    humData.push(data.humidity);
+                });
+
+                if (sortedData.length > 0) {
+                    const last = sortedData[sortedData.length - 1];
+                    document.getElementById('latest-temp').innerHTML = `${last.temperature.toFixed(1)} <span class="text-3xl text-slate-400 font-medium">°C</span>`;
+                    document.getElementById('latest-hum').innerHTML = `${last.humidity.toFixed(1)} <span class="text-3xl text-slate-400 font-medium">%</span>`;
+                    const updateText = `อัปเดตล่าสุด: ${moment().format('HH:mm:ss')}`;
+                    document.getElementById('time-temp').innerText = updateText;
+                    document.getElementById('time-hum').innerText = updateText;
+                }
+
+                sensorChart.data.labels = labels;
+                sensorChart.data.datasets[0].data = tempData;
+                sensorChart.data.datasets[1].data = humData;
+                sensorChart.update();
+
+                statusBadge.innerHTML = `ออนไลน์ (${snapshot.size} รายการ)`;
+                statusBadge.className = 'px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-semibold border border-green-200';
+            }, (error) => {
+                console.error("Error loading data:", error);
+                statusBadge.innerText = "เกิดข้อผิดพลาด!";
+            });
+        }
+
+        // ลงชื่อเข้าใช้และเริ่มโหลดข้อมูล
+        signInAnonymously(auth).then(() => {
+            loadData('realtime');
+        }).catch((err) => console.error("Auth error:", err));
+
+    </script>
+</body>
+</html>
