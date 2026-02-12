@@ -3,316 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clean Smart Monitor</title>
-    
-    <!-- Libraries -->
+    <title>แดชบอร์ดข้อมูลเซนเซอร์ (SHT20)</title>
+    <!-- Tailwind CSS สำหรับตกแต่งหน้าเว็บ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js สำหรับทำกราฟ -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            /* Palette: Soft Dark Theme */
-            --bg-gradient-start: #1a1c23;
-            --bg-gradient-end: #12141a;
-            
-            --card-bg: rgba(35, 39, 47, 0.7);
-            --card-border: rgba(255, 255, 255, 0.08);
-            
-            /* Soft Colors (Pastel) */
-            --color-temp: #ff7675;   /* Soft Coral */
-            --color-humi: #74b9ff;   /* Soft Blue */
-            --color-pm: #ffeaa7;     /* Soft Yellow */
-            --color-clock: #dfe6e9;  /* Off White */
-            --color-green: #55efc4;  /* Mint Green */
-            
-            --text-main: #f1f2f6;
-            --text-muted: #a4b0be;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Prompt', sans-serif;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            color: var(--text-main);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container { max-width: 1200px; margin: 0 auto; }
-
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding: 10px 0;
-        }
-        .header h1 {
-            font-weight: 500;
-            font-size: 1.5rem;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .header h1 i { color: var(--color-humi); }
-        
-        .connection-status {
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            background: rgba(255,255,255,0.05);
-            padding: 6px 16px;
-            border-radius: 30px;
-            color: var(--text-muted);
-            border: 1px solid var(--card-border);
-        }
-        .dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            margin-right: 8px;
-            transition: all 0.3s ease;
-        }
-        .online { background-color: var(--color-green); box-shadow: 0 0 8px rgba(85, 239, 196, 0.4); }
-        .offline { background-color: var(--color-temp); }
-
-        /* Grid Layout */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 24px;
-        }
-
-        /* Card Style - Clean & Glassy */
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            border-color: rgba(255,255,255,0.15);
-        }
-
-        /* Typography inside cards */
-        .card-title {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            font-weight: 400;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .value-display {
-            font-family: 'Prompt', sans-serif; /* Changed from Orbitron for cleaner look */
-            font-size: 3.5rem;
-            font-weight: 500;
-            margin: 5px 0;
-            letter-spacing: -1px;
-        }
-        .unit { 
-            font-size: 1.2rem; 
-            color: var(--text-muted); 
-            font-weight: 300; 
-            margin-left: 5px; 
-            vertical-align: middle;
-        }
-
-        /* Specific Colors */
-        .text-temp { color: var(--color-temp); }
-        .text-humi { color: var(--color-humi); }
-        .text-pm { color: var(--color-pm); }
-        .text-clock { color: var(--color-clock); }
-
-        /* Layout Assignments */
-        .col-span-4 { grid-column: span 4; }
-        .col-span-8 { grid-column: span 8; }
-
-        @media (max-width: 1024px) {
-            .col-span-4, .col-span-8 { grid-column: span 6; }
-        }
-        @media (max-width: 768px) {
-            .grid-container { display: flex; flex-direction: column; }
-        }
-
-        /* Clock */
-        .digital-clock { font-size: 3rem; text-align: center; }
-        .date-display { text-align: center; color: var(--text-muted); font-size: 0.95rem; margin-top: -5px; }
-
-        /* PM2.5 Pill */
-        .status-pill {
-            display: inline-block;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            background: rgba(255,255,255,0.05);
-            margin-top: 10px;
-            transition: all 0.3s ease;
-        }
-
-        /* Chart Container */
-        .chart-wrapper { position: relative; height: 320px; width: 100%; }
-        
-        /* Icons */
-        .icon-box {
-            width: 32px; height: 32px;
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.9rem;
-            margin-right: 5px;
-        }
-        .icon-temp { background: rgba(255, 118, 117, 0.15); color: var(--color-temp); }
-        .icon-humi { background: rgba(116, 185, 255, 0.15); color: var(--color-humi); }
-        .icon-clock { background: rgba(223, 230, 233, 0.15); color: var(--text-muted); }
-        .icon-chart { background: rgba(85, 239, 196, 0.15); color: var(--color-green); }
-        .icon-pm { background: rgba(255, 234, 167, 0.15); color: var(--color-pm); }
-
-    </style>
+    <!-- Moment.js สำหรับจัดการรูปแบบเวลา -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/th.min.js"></script>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
 
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1><i class="fas fa-leaf"></i> Chainat Air <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 300; margin-left: 10px;">Monitor Dashboard</span></h1>
-            <div class="connection-status">
-                <span class="dot offline" id="status-dot"></span>
-                <span id="mqtt-status-text">Disconnected</span>
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- ส่วนหัวเรื่องและสถานะ -->
+        <header class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800 tracking-tight">แดชบอร์ดสภาพแวดล้อม</h1>
+                <p class="text-slate-500 mt-1">แสดงข้อมูลอุณหภูมิและความชื้นจาก ESP32</p>
+            </div>
+            <div id="status-badge" class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-semibold flex items-center gap-2">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
+                </span>
+                กำลังเชื่อมต่อ...
+            </div>
+        </header>
+
+        <!-- การ์ดแสดงค่าล่าสุด -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-orange-400"></div>
+                <h2 class="text-lg font-medium text-slate-500 mb-2">อุณหภูมิล่าสุด</h2>
+                <div class="text-6xl font-black text-slate-700" id="latest-temp">-- <span class="text-3xl text-slate-400 font-medium">°C</span></div>
+                <p class="text-sm text-slate-400 mt-3" id="time-temp">อัปเดตเมื่อ: --:--</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-blue-400"></div>
+                <h2 class="text-lg font-medium text-slate-500 mb-2">ความชื้นล่าสุด</h2>
+                <div class="text-6xl font-black text-slate-700" id="latest-hum">-- <span class="text-3xl text-slate-400 font-medium">%</span></div>
+                <p class="text-sm text-slate-400 mt-3" id="time-hum">อัปเดตเมื่อ: --:--</p>
             </div>
         </div>
 
-        <!-- Dashboard Grid -->
-        <div class="grid-container">
+        <!-- แผงควบคุมและกราฟ -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             
-            <!-- Clock Card -->
-            <div class="card col-span-4">
-                <div class="card-title">
-                    <div class="icon-box icon-clock"><i class="far fa-clock"></i></div> 
-                    Current Time
-                </div>
-                <div class="value-display text-clock digital-clock" id="clock">00:00</div>
-                <div class="date-display" id="date">--</div>
-            </div>
-
-            <!-- ESP32 Temp -->
-            <div class="card col-span-4">
-                <div class="card-title">
-                    <div class="icon-box icon-temp"><i class="fas fa-temperature-high"></i></div>
-                    Temperature
-                </div>
-                <div class="value-display text-temp">
-                    <span id="txt-temp">--</span><span class="unit">°C</span>
-                </div>
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Indoor Sensor</div>
-            </div>
-
-            <!-- ESP32 Humidity -->
-            <div class="card col-span-4">
-                <div class="card-title">
-                    <div class="icon-box icon-humi"><i class="fas fa-tint"></i></div>
-                    Humidity
-                </div>
-                <div class="value-display text-humi">
-                    <span id="txt-humi">--</span><span class="unit">%</span>
-                </div>
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Relative Level</div>
-            </div>
-
-            <!-- Main Chart (Temp & Humi) -->
-            <div class="card col-span-8">
-                <div class="card-title">
-                    <div class="icon-box icon-chart"><i class="fas fa-chart-area"></i></div>
-                    Real-time Overview (24h Trend)
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="chartESP32"></canvas>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 class="text-xl font-bold text-slate-700">กราฟแนวโน้มข้อมูล</h2>
+                
+                <!-- ปุ่มเลือกช่วงเวลา -->
+                <div class="flex flex-wrap gap-2" id="time-buttons">
+                    <button data-range="realtime" class="time-btn bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm hover:bg-blue-700">เรียลไทม์</button>
+                    <button data-range="15m" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">15 นาที</button>
+                    <button data-range="1h" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">1 ชม.</button>
+                    <button data-range="3h" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">3 ชม.</button>
+                    <button data-range="6h" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">6 ชม.</button>
+                    <button data-range="12h" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">12 ชม.</button>
+                    <button data-range="24h" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">24 ชม.</button>
+                    <button data-range="3d" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">3 วัน</button>
+                    <button data-range="7d" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">7 วัน</button>
+                    <button data-range="1M" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">1 เดือน</button>
+                    <button data-range="3M" class="time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200">3 เดือน</button>
                 </div>
             </div>
 
-            <!-- PM2.5 Section -->
-            <div class="card col-span-4" style="display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <div class="card-title">
-                        <div class="icon-box icon-pm"><i class="fas fa-wind"></i></div>
-                        PM2.5 Chainat
-                    </div>
-                    <div style="text-align: center; margin-top: 10px;">
-                        <div class="value-display text-pm">
-                            <span id="txt-pm25">--</span> <span class="unit" style="font-size: 1rem;">µg/m³</span>
-                        </div>
-                        <div class="status-pill" id="pm25-pill">Waiting...</div>
-                    </div>
-                </div>
-                <div style="height: 100px; margin-top: 20px;">
-                    <canvas id="chartPM25"></canvas>
-                </div>
+            <!-- พื้นที่แสดงกราฟ -->
+            <div class="relative h-80 w-full">
+                <canvas id="sensorChart"></canvas>
             </div>
-
+            <p class="text-xs text-slate-400 mt-4 text-right">*ข้อมูลย้อนหลังถูกจำกัดการแสดงผลสูงสุดที่ 1,000 จุด เพื่อป้องกันโควต้า Firebase เต็ม</p>
         </div>
+
     </div>
 
-    <script>
-        // --- 1. Clock Logic ---
-        function updateClock() {
-            const now = new Date();
-            // Show only HH:MM for cleaner look, seconds can be distracting
-            document.getElementById('clock').textContent = now.toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
-            document.getElementById('date').textContent = now.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+    <!-- โค้ดระบบหลัก -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, limit, onSnapshot, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 2. Chart Configuration (Soft & Clean) ---
-        Chart.defaults.color = '#636e72';
-        Chart.defaults.font.family = "'Prompt', sans-serif";
-        Chart.defaults.font.size = 11;
+        // ==========================================
+        // 1. นำ Config ของคุณมาใส่ตรงนี้
+        // ==========================================
+        const firebaseConfig = {
+                         "type": "service_account",
+                          "project_id": "dpcloud-67cdb",
+                          "private_key_id": "e64bb079b21f992a724aa90b19508ab80351d4ce",
+                          "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCtahsWUFkSG9bv\npWbHpsa1EsbQ/XkrKheTFFzyKd8KxIVSGwB3WxpGUreU1IM5QsFHqBE/t+3D/bEP\n3Z15KsC7BDHMpCHKTigrxZSwIqUjBrPvuxiDPgQnxlmp5OtWe20GvR1pn8zoCnZJ\nXibSk/R90uBBbgqtXifm6t1va/w6xSmepdC1MvQM6WW7ZNo2y1EvupbhbbqonRTh\n7VbNUkAmBlyRu3xR97kFqhaTWyURtDuO6g9dWj5FsuCdBsmEvyJ5dcgKJvOGutZY\nkJpRElp4vtB0Mt7eBxuf6tpsIBxmo6B21MGhJyTpz8fIbgnSUYao94aQ1Du6TsaZ\nH9OVscZDAgMBAAECggEADYOLHdeKwWhYUm+WIrE3+KIVypveJpjOooBqkoKPJkR/\nS+aHyEVaDFM43t5wEB/IISCTS4m2poMtb6+VAdLCQdtcqCES8wmD2Y65p2o5FTwv\nUdtyLb7A+HqIFT8eKddPfUAdO9R0quaEe54x3KTOtO7LLr4iaIqXBciVaK/xGtaO\npQ4NtkGSJDJ0jWFM56FZMUzTnU5gPAcgdwGXlSNQntUKLUCq6hQ+n5SLpoyacDF7\nhFNL2K8yrpSGBwyYOxYEpaViZtIYxqL6dRFCyfE6Vch9zzCp5Z0B8wXWbffqUAye\nRnc3QqzCWDq/jpCURm7bUSIEm42B9RFX9I/kP/btsQKBgQDeG4fW7mu81pCUeZFs\nqjLV+eR6Hw26nI/BzHDvSRzWrrskGZ/q29KO0JBFzhsCpdiwkV9ycW5yUqgePjog\nOxaYctEslLVyMaMbyU66/AnHrurDL3dPtrxNsfwu2OQHuqRPNGUskVsVsDPsr1a4\nHFspGkEGmkwtM/eAfvuHTUh6MQKBgQDH4GqBEReMEeaX+MZwgHG1qoLdxQ6k7Gm7\nRZH+5qs8bdhw1mbdgaY+tZB8GF8FVWWcoKa7sx4/GV6WyEyo5xlPZ3WHTmuvj8TK\nif3Vg5lwdcsEJzoJ3Scew4uITgTab525Jig3kxM+yVbkyBkSwJuCMQUGvSxxejQr\nA5FfWJ42swKBgQC96/y0JRurVi47R9i6eq8NmaltY7Bxqf6jURYhBvvJ94++xsqg\nIWhjBqTXi+48zWQFV8muKqCu0U9AzSUW+m/P3B5RaLfe9eLrl6/i5DHYthG45ZW4\nbCGIrnFd/ci/czGdKMh627BvU0STVztoI5cwBmskIjyRSqaREgQzJjqbgQKBgC8L\nKeYg4LruB6kjO4mFIb5RWKXb2JuGrUgPktI89natn/DG9cUS288MquoaTlsSA21+\n/l9VRDwzu2if0jM62WEwB6CGG6BhpT7Khbz4UWf/wX3DwcxKigeanL/DJS9IcAYA\n7hxOeIwhlVsZoZUhUjitUvKIGerHiXnKSC/5ypszAoGBAI0jga02kwjsl4csl+lG\nVzntFsEPWRfLUOxDDZK3oDXIcyCIdGzsuwRvgqxLRrbZvONx6rNDe7v3LXntPlWU\n6ghA1WPkgTcYCOg2r5YLzPVDg2j0Gscrtss9+2AWCh+MvrzdIgWKdh2UhQGj/7Gw\nSvp9uEX8mkFSrsBBVP+asKQY\n-----END PRIVATE KEY-----\n",
+                          "client_email": "firebase-adminsdk-fbsvc@dpcloud-67cdb.iam.gserviceaccount.com",
+                          "client_id": "107445874417767879180",
+                          "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                          "token_uri": "https://oauth2.googleapis.com/token",
+                          "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                          "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40dpcloud-67cdb.iam.gserviceaccount.com",
+                          "universe_domain": "googleapis.com"
+                     };
 
-        const ctxESP = document.getElementById('chartESP32').getContext('2d');
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // ==========================================
+        // 2. ตั้งค่ากราฟ Chart.js
+        // ==========================================
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        Chart.defaults.font.family = "'Sarabun', 'Prompt', sans-serif";
         
-        // Soft Gradients
-        const gradientTemp = ctxESP.createLinearGradient(0, 0, 0, 300);
-        gradientTemp.addColorStop(0, 'rgba(255, 118, 117, 0.4)');
-        gradientTemp.addColorStop(1, 'rgba(255, 118, 117, 0.05)');
-
-        const gradientHumi = ctxESP.createLinearGradient(0, 0, 0, 300);
-        gradientHumi.addColorStop(0, 'rgba(116, 185, 255, 0.4)');
-        gradientHumi.addColorStop(1, 'rgba(116, 185, 255, 0.05)');
-
-        const chartESP = new Chart(ctxESP, {
+        const sensorChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [],
+                labels: [], 
                 datasets: [
                     {
-                        label: 'Temp',
-                        data: [],
-                        borderColor: '#ff7675',
-                        backgroundColor: gradientTemp,
+                        label: 'อุณหภูมิ (°C)',
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
                         borderWidth: 2,
-                        pointRadius: 0, // Cleaner look without points
-                        pointHoverRadius: 4,
-                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5,
+                        data: [], 
+                        tension: 0.3,
                         fill: true,
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Humidity',
-                        data: [],
-                        borderColor: '#74b9ff',
-                        backgroundColor: gradientHumi,
+                        label: 'ความชื้น (%)',
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 2,
-                        pointRadius: 0,
-                        pointHoverRadius: 4,
-                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5,
+                        data: [], 
+                        tension: 0.3,
                         fill: true,
                         yAxisID: 'y1'
                     }
@@ -321,148 +145,173 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { 
-                        position: 'top', 
-                        align: 'end',
-                        labels: { usePointStyle: true, boxWidth: 8, color: '#a4b0be' }
-                    }
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
                 },
                 scales: {
-                    x: { 
-                        grid: { display: false },
-                        ticks: { color: '#a4b0be' }
+                    x: {
+                        grid: { display: false }
                     },
-                    y: { 
+                    y: {
+                        type: 'linear',
+                        display: true,
                         position: 'left',
-                        grid: { color: 'rgba(255,255,255,0.03)', borderDash: [5, 5] },
-                        ticks: { color: '#ff7675' },
-                        suggestedMin: 20, suggestedMax: 40
+                        title: { display: true, text: 'อุณหภูมิ (°C)' }
                     },
-                    y1: { 
+                    y1: {
+                        type: 'linear',
+                        display: true,
                         position: 'right',
-                        grid: { display: false },
-                        ticks: { color: '#74b9ff' },
-                        suggestedMin: 40, suggestedMax: 100
+                        title: { display: true, text: 'ความชื้น (%)' },
+                        grid: { drawOnChartArea: false } 
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        padding: 12,
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 13 }
                     }
                 }
             }
         });
 
-        const ctxPM = document.getElementById('chartPM25').getContext('2d');
-        const chartPM = new Chart(ctxPM, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'PM2.5',
-                    data: [],
-                    backgroundColor: '#ffeaa7',
-                    borderRadius: 3,
-                    barThickness: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { display: false },
-                    y: { display: false }
-                }
-            }
-        });
+        // ==========================================
+        // 3. ฟังก์ชันดึงข้อมูลตามช่วงเวลา
+        // ==========================================
+        let unsubscribe = null; 
 
-        // --- 3. Update Logic ---
-        const MAX_POINTS = 20;
-        function updateCharts(time, t, h, p) {
-            // Update ESP Chart
-            if (chartESP.data.labels.length >= MAX_POINTS) {
-                chartESP.data.labels.shift();
-                chartESP.data.datasets.forEach(d => d.data.shift());
+        function calculateStartTime(range) {
+            const now = new Date();
+            switch (range) {
+                case '15m': return new Date(now.getTime() - 15 * 60000);
+                case '1h': return new Date(now.getTime() - 1 * 3600000);
+                case '3h': return new Date(now.getTime() - 3 * 3600000);
+                case '6h': return new Date(now.getTime() - 6 * 3600000);
+                case '12h': return new Date(now.getTime() - 12 * 3600000);
+                case '24h': return new Date(now.getTime() - 24 * 3600000);
+                case '3d': return new Date(now.getTime() - 3 * 24 * 3600000);
+                case '7d': return new Date(now.getTime() - 7 * 24 * 3600000);
+                case '1M': return new Date(now.setMonth(now.getMonth() - 1));
+                case '3M': return new Date(now.setMonth(now.getMonth() - 3));
+                default: return null;
             }
-            chartESP.data.labels.push(time);
-            chartESP.data.datasets[0].data.push(t);
-            chartESP.data.datasets[1].data.push(h);
-            chartESP.update();
-
-            // Update PM2.5 Chart
-            if (chartPM.data.labels.length >= 15) {
-                chartPM.data.labels.shift();
-                chartPM.data.datasets[0].data.shift();
-            }
-            chartPM.data.labels.push(time);
-            chartPM.data.datasets[0].data.push(p);
-            chartPM.update();
         }
 
-        // --- 4. Simulation (PM2.5) ---
-        let simPM25 = 35;
-        function simulatePM25() {
-            simPM25 += (Math.random() * 4) - 2; // Slower random walk
-            if(simPM25 < 5) simPM25 = 5;
-            if(simPM25 > 150) simPM25 = 150;
-            
-            const val = Math.round(simPM25);
-            const el = document.getElementById('txt-pm25');
-            const pill = document.getElementById('pm25-pill');
-            
-            el.textContent = val;
-            
-            if(val <= 25) { 
-                pill.textContent = "Excellent Air"; pill.style.background = "rgba(85, 239, 196, 0.15)"; pill.style.color = "#55efc4";
-            } else if(val <= 50) {
-                pill.textContent = "Moderate"; pill.style.background = "rgba(255, 234, 167, 0.15)"; pill.style.color = "#ffeaa7";
+        function loadData(range) {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+
+            const statusBadge = document.getElementById('status-badge');
+            statusBadge.innerHTML = `<span class="animate-spin h-4 w-4 border-2 border-slate-500 border-t-transparent rounded-full"></span> กำลังโหลด...`;
+            statusBadge.className = 'px-4 py-2 bg-slate-100 text-slate-700 rounded-full text-sm font-semibold flex items-center gap-2';
+
+            let q;
+            if (range === 'realtime') {
+                q = query(collection(db, "sensor_logs"), orderBy("timestamp", "desc"), limit(50));
             } else {
-                pill.textContent = "Unhealthy"; pill.style.background = "rgba(255, 118, 117, 0.15)"; pill.style.color = "#ff7675";
+                const startTime = calculateStartTime(range);
+                q = query(
+                    collection(db, "sensor_logs"), 
+                    where("timestamp", ">=", startTime), 
+                    orderBy("timestamp", "desc"), 
+                    limit(1000)
+                );
             }
-            return val;
-        }
 
-        // --- 5. MQTT Connection ---
-        const mqttConfig = {
-            host: "1775d011329846b5a98c94a70f743969.s1.eu.hivemq.cloud",
-            port: 8884,
-            user: "dpnine", pass: "nayNAY08", topic: "home/sensor"
-        };
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const labels = [];
+                const tempData = [];
+                const humData = [];
+                let isFirstDoc = true;
 
-        const client = new Paho.MQTT.Client(mqttConfig.host, mqttConfig.port, "web_" + Math.random().toString(16).substr(2, 6));
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    
+                    let timeStr = '--:--';
+                    if (data.timestamp) {
+                        const dateObj = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+                        if (['24h', '3d', '7d', '1M', '3M'].includes(range)) {
+                            timeStr = moment(dateObj).format('DD/MM HH:mm');
+                        } else {
+                            timeStr = moment(dateObj).format('HH:mm:ss');
+                        }
+                    }
+                    
+                    labels.unshift(timeStr);
+                    tempData.unshift(data.temperature);
+                    humData.unshift(data.humidity);
 
-        client.onMessageArrived = (msg) => {
-            try {
-                const payload = JSON.parse(msg.payloadString);
-                const pmVal = simulatePM25();
-                const now = new Date().toLocaleTimeString('th-TH', { hour12: false, hour:'2-digit', minute:'2-digit' });
+                    if (isFirstDoc) {
+                        document.getElementById('latest-temp').innerHTML = `${data.temperature.toFixed(1)} <span class="text-3xl text-slate-400 font-medium">°C</span>`;
+                        document.getElementById('latest-hum').innerHTML = `${data.humidity.toFixed(1)} <span class="text-3xl text-slate-400 font-medium">%</span>`;
+                        
+                        const updateText = `อัปเดตล่าสุด: ${moment().format('HH:mm:ss')}`;
+                        document.getElementById('time-temp').innerText = updateText;
+                        document.getElementById('time-hum').innerText = updateText;
+                        isFirstDoc = false;
+                    }
+                });
 
-                // Update DOM
-                document.getElementById('txt-temp').textContent = payload.temp;
-                document.getElementById('txt-humi').textContent = payload.humidity;
+                sensorChart.data.labels = labels;
+                sensorChart.data.datasets[0].data = tempData;
+                sensorChart.data.datasets[1].data = humData;
+                sensorChart.update();
 
-                // Update Charts
-                updateCharts(now, payload.temp, payload.humidity, pmVal);
-            } catch(e) { console.error(e); }
-        };
+                statusBadge.innerHTML = `<span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span> ออนไลน์ (${snapshot.size} รายการ)`;
+                statusBadge.className = 'px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-semibold flex items-center gap-2 border border-green-200';
 
-        client.onConnectionLost = () => {
-            document.getElementById('status-dot').className = "dot offline";
-            document.getElementById('mqtt-status-text').textContent = "Disconnected";
-            setTimeout(connectMQTT, 5000);
-        };
-
-        function connectMQTT() {
-            document.getElementById('mqtt-status-text').textContent = "Connecting...";
-            client.connect({
-                onSuccess: () => {
-                    document.getElementById('status-dot').className = "dot online";
-                    document.getElementById('mqtt-status-text').textContent = "Connected";
-                    client.subscribe(mqttConfig.topic);
-                },
-                onFailure: () => setTimeout(connectMQTT, 5000),
-                userName: mqttConfig.user, password: mqttConfig.pass, useSSL: true
+            }, (error) => {
+                console.error("เกิดข้อผิดพลาดในการดึงข้อมูล: ", error);
+                
+                // จัดการ Error เมื่อดึงข้อมูลไม่สำเร็จ
+                if (error.code === 'permission-denied') {
+                    statusBadge.innerHTML = `🔴 ไม่มีสิทธิ์เข้าถึงข้อมูล (โปรดแก้ไข Rules ของ Firestore)`;
+                } else {
+                    statusBadge.innerHTML = `🔴 เกิดข้อผิดพลาดในการโหลดข้อมูล`;
+                }
+                statusBadge.className = 'px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-semibold flex items-center gap-2 border border-red-200';
             });
         }
 
-        connectMQTT();
+        // ==========================================
+        // 4. จัดการปุ่มกด (Active State)
+        // ==========================================
+        const buttons = document.querySelectorAll('.time-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                buttons.forEach(b => {
+                    b.className = 'time-btn bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-slate-200';
+                });
+                
+                e.target.className = 'time-btn bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm hover:bg-blue-700';
+                
+                const range = e.target.getAttribute('data-range');
+                loadData(range);
+            });
+        });
+
+        // ==========================================
+        // 5. เริ่มต้นการทำงาน (ล็อคอินแบบไม่ระบุตัวตน + โหลดข้อมูล)
+        // ==========================================
+        signInAnonymously(auth).then(() => {
+            loadData('realtime');
+        }).catch((error) => {
+            console.error("ล็อคอินล้มเหลว:", error);
+            
+            // จัดการ Error เมื่อล็อคอิน Anonymous ไม่สำเร็จ
+            const statusBadge = document.getElementById('status-badge');
+            if (error.code === 'auth/admin-restricted-operation') {
+                statusBadge.innerHTML = `🔴 กรุณาไปเปิดใช้งาน 'Anonymous' ใน Firebase Authentication`;
+                statusBadge.className = 'px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-semibold border border-red-200';
+            }
+            
+            loadData('realtime'); 
+        });
+
     </script>
 </body>
 </html>
