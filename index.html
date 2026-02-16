@@ -3,143 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Farm Control Center</title>
+    <title>Smart Home Control (2 Relays)</title>
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.5); }
-        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
+        body { font-family: 'Outfit', sans-serif; }
+        
+        /* Glassmorphism Effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        }
+
+        /* Power Button Animation */
+        .power-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; }
+        .power-btn:active { transform: scale(0.95); }
+        .power-btn.on { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); 
+            border: none;
+        }
+        .power-btn.off { 
+            background: #f8fafc; 
+            color: #94a3b8; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Tabs */
+        .tab-btn { transition: all 0.2s; }
+        .tab-btn.active { background-color: #4f46e5; color: white; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="bg-slate-50 min-h-screen text-slate-800 pb-20">
 
-    <div class="max-w-7xl mx-auto px-4 py-6">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-8">
+    <!-- Header Background -->
+    <div class="fixed top-0 left-0 w-full h-64 bg-gradient-to-r from-indigo-600 to-blue-500 rounded-b-[3rem] shadow-lg -z-10"></div>
+
+    <div class="max-w-6xl mx-auto px-4 pt-10">
+        <!-- Title & Status -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 text-white">
             <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-slate-800"><i class="fas fa-leaf text-green-500 mr-2"></i>Smart Farm Control</h1>
-                <p class="text-slate-500 text-sm">ระบบควบคุมและติดตามสถานะฟาร์มอัจฉริยะ</p>
+                <h1 class="text-3xl font-bold tracking-tight">Smart Dashboard</h1>
+                <p class="text-indigo-100 mt-1 opacity-90">ควบคุมระบบเซนเซอร์และรีเลย์ 2 ช่อง</p>
             </div>
-            <div id="connection-status" class="px-3 py-1 bg-gray-200 rounded-full text-xs font-semibold text-gray-600 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-gray-400"></span> Offline
-            </div>
-        </div>
-
-        <!-- Sensor Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <!-- Temp -->
-            <div class="glass p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                <div class="absolute right-0 top-0 p-4 opacity-10 text-orange-500"><i class="fas fa-temperature-high text-6xl"></i></div>
-                <h3 class="text-orange-600 font-semibold text-sm uppercase">Temperature</h3>
-                <div class="flex items-baseline gap-2 mt-2">
-                    <span id="val-temp" class="text-5xl font-bold text-slate-800">--</span>
-                    <span class="text-xl text-slate-400">°C</span>
-                </div>
-            </div>
-            <!-- Humidity -->
-            <div class="glass p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                <div class="absolute right-0 top-0 p-4 opacity-10 text-blue-500"><i class="fas fa-tint text-6xl"></i></div>
-                <h3 class="text-blue-600 font-semibold text-sm uppercase">Humidity</h3>
-                <div class="flex items-baseline gap-2 mt-2">
-                    <span id="val-humid" class="text-5xl font-bold text-slate-800">--</span>
-                    <span class="text-xl text-slate-400">%</span>
-                </div>
+            <div id="status-badge" class="px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-sm font-medium flex items-center gap-2 border border-white/30">
+                <span class="animate-pulse">●</span> Connecting...
             </div>
         </div>
 
-        <!-- Relay Control Section -->
-        <h2 class="text-xl font-bold mb-4 text-slate-700"><i class="fas fa-power-off mr-2"></i>Control Panel (Relay)</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <!-- Relay 1 Card -->
-            <div class="glass p-6 rounded-2xl shadow-lg border-l-4 border-indigo-500">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-indigo-700">Relay 1 (Pin 18)</h3>
-                    <div class="flex bg-gray-100 rounded-lg p-1">
-                        <button onclick="setMode('r1', 'manual')" id="btn-r1-manual" class="px-3 py-1 text-xs rounded-md font-medium transition-all">Manual</button>
-                        <button onclick="setMode('r1', 'auto')" id="btn-r1-auto" class="px-3 py-1 text-xs rounded-md font-medium transition-all">Auto</button>
+            <!-- LEFT COLUMN: SENSORS (8 Cols) -->
+            <div class="lg:col-span-8 flex flex-col gap-6">
+                <!-- Sensor Values -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                        <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition"><i class="fa-solid fa-temperature-three-quarters text-6xl text-orange-500"></i></div>
+                        <p class="text-slate-500 text-sm font-semibold mb-1">TEMPERATURE</p>
+                        <h2 id="latest-temp" class="text-5xl font-bold text-slate-800">-- <span class="text-2xl text-slate-400 font-light">°C</span></h2>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                        <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition"><i class="fa-solid fa-droplet text-6xl text-blue-500"></i></div>
+                        <p class="text-slate-500 text-sm font-semibold mb-1">HUMIDITY</p>
+                        <h2 id="latest-hum" class="text-5xl font-bold text-slate-800">-- <span class="text-2xl text-slate-400 font-light">%</span></h2>
                     </div>
                 </div>
 
-                <!-- Manual UI -->
-                <div id="ui-r1-manual" class="text-center py-4">
-                    <button id="btn-r1-toggle" onclick="toggleRelay('r1')" class="w-full py-4 rounded-xl font-bold text-xl transition-all shadow-md flex items-center justify-center gap-3">
-                        <i class="fas fa-power-off"></i> <span>OFF</span>
-                    </button>
-                    <p class="text-xs text-slate-400 mt-2">กดเพื่อ เปิด/ปิด ทันที</p>
-                </div>
-
-                <!-- Auto UI -->
-                <div id="ui-r1-auto" class="hidden space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-xs text-slate-500 block mb-1">เวลาเปิด (ON)</label>
-                            <input type="time" id="time-r1-on" onchange="updateTimer('r1')" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-700">
-                        </div>
-                        <div>
-                            <label class="text-xs text-slate-500 block mb-1">เวลาปิด (OFF)</label>
-                            <input type="time" id="time-r1-off" onchange="updateTimer('r1')" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-700">
-                        </div>
-                    </div>
-                    <div class="text-center text-xs text-indigo-500 font-medium bg-indigo-50 p-2 rounded-lg">
-                        <i class="fas fa-clock mr-1"></i> ระบบจะทำงานตามเวลาที่ตั้งไว้อัตโนมัติ
+                <!-- Chart -->
+                <div class="glass-card p-6 rounded-2xl flex-1 min-h-[350px]">
+                    <h3 class="font-bold text-slate-700 mb-4">Real-time Monitor</h3>
+                    <div class="relative w-full h-[300px]">
+                        <canvas id="sensorChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Relay 2 Card -->
-            <div class="glass p-6 rounded-2xl shadow-lg border-l-4 border-pink-500">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-pink-700">Relay 2 (Pin 19)</h3>
-                    <div class="flex bg-gray-100 rounded-lg p-1">
-                        <button onclick="setMode('r2', 'manual')" id="btn-r2-manual" class="px-3 py-1 text-xs rounded-md font-medium transition-all">Manual</button>
-                        <button onclick="setMode('r2', 'auto')" id="btn-r2-auto" class="px-3 py-1 text-xs rounded-md font-medium transition-all">Auto</button>
+            <!-- RIGHT COLUMN: CONTROL PANEL (4 Cols) -->
+            <div class="lg:col-span-4">
+                <div class="glass-card p-6 rounded-2xl h-full flex flex-col">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fa-solid fa-sliders"></i></div>
+                        <h3 class="font-bold text-lg text-slate-800">Relay Control</h3>
                     </div>
-                </div>
 
-                <!-- Manual UI -->
-                <div id="ui-r2-manual" class="text-center py-4">
-                    <button id="btn-r2-toggle" onclick="toggleRelay('r2')" class="w-full py-4 rounded-xl font-bold text-xl transition-all shadow-md flex items-center justify-center gap-3">
-                        <i class="fas fa-power-off"></i> <span>OFF</span>
-                    </button>
-                    <p class="text-xs text-slate-400 mt-2">กดเพื่อ เปิด/ปิด ทันที</p>
-                </div>
+                    <!-- 1. TABS (Relay Selector) -->
+                    <div class="bg-slate-100 p-1 rounded-xl flex mb-6">
+                        <button onclick="switchTab('relay_1')" id="tab-relay_1" class="tab-btn active flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-600">Relay 1</button>
+                        <button onclick="switchTab('relay_2')" id="tab-relay_2" class="tab-btn flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-600">Relay 2</button>
+                    </div>
 
-                <!-- Auto UI -->
-                <div id="ui-r2-auto" class="hidden space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-xs text-slate-500 block mb-1">เวลาเปิด (ON)</label>
-                            <input type="time" id="time-r2-on" onchange="updateTimer('r2')" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-700">
-                        </div>
-                        <div>
-                            <label class="text-xs text-slate-500 block mb-1">เวลาปิด (OFF)</label>
-                            <input type="time" id="time-r2-off" onchange="updateTimer('r2')" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-700">
+                    <!-- 2. MODE SWITCH (Manual / Auto) -->
+                    <div class="flex justify-between items-center mb-6 px-2">
+                        <span class="text-sm font-semibold text-slate-500">Mode:</span>
+                        <div class="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
+                            <button onclick="setMode('manual')" id="btn-manual" class="px-4 py-1.5 rounded-md text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm">Manual</button>
+                            <button onclick="setMode('auto')" id="btn-auto" class="px-4 py-1.5 rounded-md text-xs font-bold transition-all text-slate-400 hover:text-slate-600">Auto</button>
                         </div>
                     </div>
-                    <div class="text-center text-xs text-pink-500 font-medium bg-pink-50 p-2 rounded-lg">
-                        <i class="fas fa-clock mr-1"></i> ระบบจะทำงานตามเวลาที่ตั้งไว้อัตโนมัติ
+
+                    <!-- 3. CONTROL AREA -->
+                    <div class="flex-1 relative">
+                        <!-- Manual Panel -->
+                        <div id="panel-manual" class="flex flex-col items-center justify-center h-full py-4 transition-all">
+                            <button id="btn-relay-toggle" onclick="toggleRelay()" class="power-btn off w-32 h-32 rounded-full border-4 border-white flex items-center justify-center text-4xl shadow-lg mb-4">
+                                <i class="fa-solid fa-power-off"></i>
+                            </button>
+                            <p id="relay-status-text" class="text-xl font-bold text-slate-300">CLOSED</p>
+                        </div>
+
+                        <!-- Auto Panel -->
+                        <div id="panel-auto" class="hidden h-full flex flex-col gap-4">
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                <label class="text-xs font-bold text-green-600 uppercase mb-1 block"><i class="fa-regular fa-clock mr-1"></i> Start Time</label>
+                                <input type="time" id="timer-on" onchange="updateTimer()" class="w-full text-xl font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0">
+                            </div>
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                <label class="text-xs font-bold text-red-500 uppercase mb-1 block"><i class="fa-regular fa-clock mr-1"></i> End Time</label>
+                                <input type="time" id="timer-off" onchange="updateTimer()" class="w-full text-xl font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0">
+                            </div>
+                            <div class="mt-auto p-3 bg-blue-50 rounded-lg text-xs text-blue-600 leading-relaxed">
+                                <i class="fa-solid fa-circle-info mr-1"></i> ระบบจะทำงานตามเวลาที่ตั้งไว้อัตโนมัติในโหมดนี้
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </div>
-        </div>
-
-        <!-- Chart Section -->
-        <div class="glass p-6 rounded-2xl shadow-sm h-80">
-            <canvas id="sensorChart"></canvas>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getFirestore, collection, doc, onSnapshot, setDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, doc, query, orderBy, limit, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
+        // CONFIG FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyCO_62NI-RwdgdkANDxG71o0MJH7wd2CFE",
             authDomain: "dpcloud-67cdb.firebaseapp.com",
@@ -153,169 +158,162 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // Get correct App ID for path construction
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        // Global State
-        let relayState = {
-            r1_mode: 'manual', r1_manual: false, r1_on: "18:00", r1_off: "06:00",
-            r2_mode: 'manual', r2_manual: false, r2_on: "18:00", r2_off: "06:00"
+        // --- Variables ---
+        let activeRelayId = "relay_1"; // แท็บที่เลือกอยู่ปัจจุบัน
+        let relayData = {
+            relay_1: { mode: 'manual', state: false, timerOn: "18:00", timerOff: "06:00" },
+            relay_2: { mode: 'manual', state: false, timerOn: "18:00", timerOff: "06:00" }
         };
+        let chartInstance = null; // เก็บ Chart Object
 
-        // --- Controller Logic ---
-        window.setMode = (relay, mode) => {
-            const updates = {};
-            updates[`${relay}_mode`] = mode;
-            saveConfig(updates);
-        };
-
-        window.toggleRelay = (relay) => {
-            const current = relayState[`${relay}_manual`];
-            const updates = {};
-            updates[`${relay}_manual`] = !current;
-            saveConfig(updates);
-        };
-
-        window.updateTimer = (relay) => {
-            const onTime = document.getElementById(`time-${relay}-on`).value;
-            const offTime = document.getElementById(`time-${relay}-off`).value;
-            const updates = {};
-            updates[`${relay}_on`] = onTime;
-            updates[`${relay}_off`] = offTime;
-            saveConfig(updates);
-        };
-
-        async function saveConfig(updates) {
-            // Merge updates to local state immediately for UI responsiveness
-            relayState = { ...relayState, ...updates };
-            renderUI(); 
-            // Save to Firestore using SAFE PATH
-            try {
-                if (auth.currentUser) {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'relays'), updates, { merge: true });
-                } else {
-                    console.warn("User not authenticated, skipping save.");
-                }
-            } catch (err) {
-                console.error("Error saving config:", err);
-                alert("บันทึกไม่สำเร็จ: Permission Denied");
-            }
+        // --- 1. สลับ Tab Relay ---
+        window.switchTab = (relayId) => {
+            activeRelayId = relayId;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active', 'bg-indigo-600', 'text-white'));
+            document.getElementById(`tab-${relayId}`).classList.add('active');
+            updateUI(); 
         }
 
-        function renderUI() {
-            ['r1', 'r2'].forEach(r => {
-                // Mode Buttons
-                const isManual = relayState[`${r}_mode`] === 'manual';
-                const btnManual = document.getElementById(`btn-${r}-manual`);
-                const btnAuto = document.getElementById(`btn-${r}-auto`);
-                const uiManual = document.getElementById(`ui-${r}-manual`);
-                const uiAuto = document.getElementById(`ui-${r}-auto`);
-
-                btnManual.className = `px-3 py-1 text-xs rounded-md font-medium transition-all ${isManual ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`;
-                btnAuto.className = `px-3 py-1 text-xs rounded-md font-medium transition-all ${!isManual ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`;
-
-                uiManual.classList.toggle('hidden', !isManual);
-                uiAuto.classList.toggle('hidden', isManual);
-
-                // Manual Toggle Button Style
-                const btnToggle = document.getElementById(`btn-${r}-toggle`);
-                const isOn = relayState[`${r}_manual`];
-                const colorClass = r === 'r1' ? 'indigo' : 'pink';
-                
-                if(isOn) {
-                    btnToggle.className = `w-full py-4 rounded-xl font-bold text-xl transition-all shadow-md flex items-center justify-center gap-3 bg-${colorClass}-500 text-white shadow-${colorClass}-200`;
-                    btnToggle.innerHTML = `<i class="fas fa-power-off"></i> <span>ON</span>`;
-                } else {
-                    btnToggle.className = `w-full py-4 rounded-xl font-bold text-xl transition-all shadow-sm flex items-center justify-center gap-3 bg-white text-slate-400 border border-slate-200 hover:bg-slate-50`;
-                    btnToggle.innerHTML = `<i class="fas fa-power-off"></i> <span>OFF</span>`;
-                }
-
-                // Time Inputs
-                document.getElementById(`time-${r}-on`).value = relayState[`${r}_on`];
-                document.getElementById(`time-${r}-off`).value = relayState[`${r}_off`];
+        // --- 2. ฟังค่าจาก Firebase (ต้องรอ Auth ก่อน) ---
+        function setupListeners() {
+            ['relay_1', 'relay_2'].forEach(id => {
+                onSnapshot(doc(db, "controls", id), (docSnap) => {
+                    if (docSnap.exists()) {
+                        relayData[id] = docSnap.data();
+                        if (activeRelayId === id) updateUI();
+                    } else {
+                        setDoc(doc(db, "controls", id), relayData[id]).catch(e => console.error("Error creating doc:", e));
+                    }
+                }, (error) => {
+                    console.error(`Error listening to ${id}:`, error);
+                });
             });
         }
 
-        // --- Initialize Listeners (After Auth) ---
-        let myChart = null;
-
-        function setupRealtimeListeners() {
-            // 1. Listen to Sensor Data (Using SAFE PATH)
-            const qSensor = query(
-                collection(db, 'artifacts', appId, 'public', 'data', 'sensor_logs'), 
-                orderBy("timestamp", "desc"), 
-                limit(20)
-            );
-
-            onSnapshot(qSensor, (snapshot) => {
-                const data = [];
-                snapshot.forEach(doc => data.push(doc.data()));
-                if(data.length > 0) {
-                    document.getElementById("val-temp").innerText = data[0].temperature.toFixed(1);
-                    document.getElementById("val-humid").innerText = data[0].humidity.toFixed(1);
-                    updateChart(data.reverse());
-                }
-            }, (error) => {
-                console.error("Sensor listener error:", error);
-            });
-
-            // 2. Listen to Relay Config (Using SAFE PATH)
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'relays'), (doc) => {
-                if (doc.exists()) {
-                    relayState = { ...relayState, ...doc.data() };
-                    renderUI();
-                }
-            }, (error) => {
-                console.error("Config listener error:", error);
-            });
-        }
-
-        // Chart Setup
-        function updateChart(data) {
-            const ctx = document.getElementById('sensorChart').getContext('2d');
-            const labels = data.map(d => moment(d.timestamp.toDate()).format("HH:mm"));
-            const temps = data.map(d => d.temperature);
+        // --- 3. อัปเดตหน้าจอ Control Panel ---
+        function updateUI() {
+            const data = relayData[activeRelayId];
+            const btnManual = document.getElementById('btn-manual');
+            const btnAuto = document.getElementById('btn-auto');
+            const panelManual = document.getElementById('panel-manual');
+            const panelAuto = document.getElementById('panel-auto');
             
-            if (myChart) myChart.destroy();
-            
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Temperature',
-                        data: temps,
-                        borderColor: '#f97316',
-                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { grid: { display: false } } }
-                }
-            });
-        }
-
-        // --- Authentication Flow ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("Authenticated as:", user.uid);
-                document.getElementById("connection-status").innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online`;
-                setupRealtimeListeners();
+            if (data.mode === 'manual') {
+                btnManual.className = "px-4 py-1.5 rounded-md text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                btnAuto.className = "px-4 py-1.5 rounded-md text-xs font-bold transition-all text-slate-400 hover:text-slate-600";
+                panelManual.classList.remove('hidden');
+                panelAuto.classList.add('hidden');
             } else {
-                console.log("User signed out");
-                document.getElementById("connection-status").innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-400"></span> Offline`;
+                btnAuto.className = "px-4 py-1.5 rounded-md text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                btnManual.className = "px-4 py-1.5 rounded-md text-xs font-bold transition-all text-slate-400 hover:text-slate-600";
+                panelManual.classList.add('hidden');
+                panelAuto.classList.remove('hidden');
             }
-        });
 
-        // Start Auth
-        signInAnonymously(auth).catch((error) => {
-            console.error("Auth failed:", error);
-        });
+            const btn = document.getElementById('btn-relay-toggle');
+            const txt = document.getElementById('relay-status-text');
+            if (data.state) {
+                btn.className = "power-btn on w-32 h-32 rounded-full text-white flex items-center justify-center text-5xl mb-4";
+                txt.innerText = "OPEN";
+                txt.className = "text-xl font-bold text-green-500";
+            } else {
+                btn.className = "power-btn off w-32 h-32 rounded-full border-4 border-slate-50 bg-white text-slate-300 flex items-center justify-center text-5xl shadow-md mb-4";
+                txt.innerText = "CLOSED";
+                txt.className = "text-xl font-bold text-slate-300";
+            }
+
+            document.getElementById('timer-on').value = data.timerOn || "00:00";
+            document.getElementById('timer-off').value = data.timerOff || "00:00";
+        }
+
+        // --- 4. ฟังก์ชันสั่งงาน ---
+        window.setMode = async (mode) => {
+            await setDoc(doc(db, "controls", activeRelayId), { mode: mode }, { merge: true });
+        };
+
+        window.toggleRelay = async () => {
+            if (relayData[activeRelayId].mode === 'auto') return;
+            const newState = !relayData[activeRelayId].state;
+            await setDoc(doc(db, "controls", activeRelayId), { state: newState }, { merge: true });
+        };
+
+        window.updateTimer = async () => {
+            const tOn = document.getElementById('timer-on').value;
+            const tOff = document.getElementById('timer-off').value;
+            await setDoc(doc(db, "controls", activeRelayId), { timerOn: tOn, timerOff: tOff }, { merge: true });
+        };
+
+        // --- 5. Chart & Data Load (ย้ายมาเรียกหลังจาก Auth) ---
+        function initChartAndData() {
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            
+            const gradientTemp = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientTemp.addColorStop(0, 'rgba(249, 115, 22, 0.4)'); 
+            gradientTemp.addColorStop(1, 'rgba(249, 115, 22, 0)');
+            
+            const gradientHum = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientHum.addColorStop(0, 'rgba(59, 130, 246, 0.4)'); 
+            gradientHum.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { 
+                    labels: [], 
+                    datasets: [
+                        { label: 'Temp (°C)', borderColor: '#f97316', backgroundColor: gradientTemp, fill: true, tension: 0.4, data: [] }, 
+                        { label: 'Humid (%)', borderColor: '#3b82f6', backgroundColor: gradientHum, fill: true, tension: 0.4, data: [] }
+                    ] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { position: 'top', align: 'end' } }, 
+                    scales: { x: { display: false }, y: { grid: { color: '#f1f5f9' } } } 
+                }
+            });
+
+            // Start Listening to Data
+            const q = query(collection(db, "sensor_logs"), orderBy("timestamp", "desc"), limit(30));
+            onSnapshot(q, (snap) => {
+                const data = [];
+                snap.forEach(d => data.push(d.data()));
+                data.sort((a,b) => a.timestamp.seconds - b.timestamp.seconds);
+                
+                if(data.length > 0) {
+                    const last = data[data.length-1];
+                    document.getElementById('latest-temp').innerHTML = `${last.temperature.toFixed(1)} <span class="text-2xl text-slate-400 font-light">°C</span>`;
+                    document.getElementById('latest-hum').innerHTML = `${last.humidity.toFixed(1)} <span class="text-2xl text-slate-400 font-light">%</span>`;
+                    document.getElementById('status-badge').innerHTML = `<span class="text-green-400">●</span> Online`;
+                    
+                    chartInstance.data.labels = data.map(d => moment(d.timestamp.toDate()).format('HH:mm'));
+                    chartInstance.data.datasets[0].data = data.map(d => d.temperature);
+                    chartInstance.data.datasets[1].data = data.map(d => d.humidity);
+                    chartInstance.update('none');
+                }
+            }, (error) => {
+                console.error("Error reading sensor_logs:", error);
+                document.getElementById('status-badge').innerHTML = `<span class="text-red-400">●</span> Error: ${error.code}`;
+            });
+        }
+
+        // --- STARTUP LOGIC: FIX PERMISSION DENIED ---
+        const startApp = async () => {
+            try {
+                // 1. Sign In First
+                await signInAnonymously(auth);
+                console.log("Authentication successful!");
+                
+                // 2. Only THEN Initialize Listeners
+                setupListeners();
+                initChartAndData();
+                
+            } catch (error) {
+                console.error("Authentication Error:", error);
+                document.getElementById('status-badge').innerHTML = "Auth Failed";
+            }
+        };
+
+        startApp();
 
     </script>
 </body>
