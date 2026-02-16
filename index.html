@@ -137,7 +137,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
         import { getFirestore, collection, doc, onSnapshot, setDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -190,9 +190,12 @@
             relayState = { ...relayState, ...updates };
             renderUI(); 
             // Save to Firestore using SAFE PATH
-            // Path: artifacts/{appId}/public/data/config/relays
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'relays'), updates, { merge: true });
+                if (auth.currentUser) {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'relays'), updates, { merge: true });
+                } else {
+                    console.warn("User not authenticated, skipping save.");
+                }
             } catch (err) {
                 console.error("Error saving config:", err);
                 alert("บันทึกไม่สำเร็จ: Permission Denied");
@@ -233,40 +236,39 @@
             });
         }
 
-        // --- Realtime Listeners ---
-
-        // 1. Listen to Sensor Data (Using SAFE PATH)
-        // Path: artifacts/{appId}/public/data/sensor_logs
-        const qSensor = query(
-            collection(db, 'artifacts', appId, 'public', 'data', 'sensor_logs'), 
-            orderBy("timestamp", "desc"), 
-            limit(20)
-        );
+        // --- Initialize Listeners (After Auth) ---
         let myChart = null;
 
-        onSnapshot(qSensor, (snapshot) => {
-            const data = [];
-            snapshot.forEach(doc => data.push(doc.data()));
-            if(data.length > 0) {
-                document.getElementById("val-temp").innerText = data[0].temperature.toFixed(1);
-                document.getElementById("val-humid").innerText = data[0].humidity.toFixed(1);
-                updateChart(data.reverse());
-            }
-        }, (error) => {
-            console.error("Sensor listener error:", error);
-            // Hide error from UI but log to console
-        });
+        function setupRealtimeListeners() {
+            // 1. Listen to Sensor Data (Using SAFE PATH)
+            const qSensor = query(
+                collection(db, 'artifacts', appId, 'public', 'data', 'sensor_logs'), 
+                orderBy("timestamp", "desc"), 
+                limit(20)
+            );
 
-        // 2. Listen to Relay Config (Using SAFE PATH)
-        // Path: artifacts/{appId}/public/data/config/relays
-        onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'relays'), (doc) => {
-            if (doc.exists()) {
-                relayState = { ...relayState, ...doc.data() };
-                renderUI();
-            }
-        }, (error) => {
-            console.error("Config listener error:", error);
-        });
+            onSnapshot(qSensor, (snapshot) => {
+                const data = [];
+                snapshot.forEach(doc => data.push(doc.data()));
+                if(data.length > 0) {
+                    document.getElementById("val-temp").innerText = data[0].temperature.toFixed(1);
+                    document.getElementById("val-humid").innerText = data[0].humidity.toFixed(1);
+                    updateChart(data.reverse());
+                }
+            }, (error) => {
+                console.error("Sensor listener error:", error);
+            });
+
+            // 2. Listen to Relay Config (Using SAFE PATH)
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'relays'), (doc) => {
+                if (doc.exists()) {
+                    relayState = { ...relayState, ...doc.data() };
+                    renderUI();
+                }
+            }, (error) => {
+                console.error("Config listener error:", error);
+            });
+        }
 
         // Chart Setup
         function updateChart(data) {
@@ -298,10 +300,21 @@
             });
         }
 
-        // Initial Auth
-        signInAnonymously(auth).then(() => {
-            document.getElementById("connection-status").innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online`;
-            console.log("Authenticated. Using AppID:", appId);
+        // --- Authentication Flow ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Authenticated as:", user.uid);
+                document.getElementById("connection-status").innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online`;
+                setupRealtimeListeners();
+            } else {
+                console.log("User signed out");
+                document.getElementById("connection-status").innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-400"></span> Offline`;
+            }
+        });
+
+        // Start Auth
+        signInAnonymously(auth).catch((error) => {
+            console.error("Auth failed:", error);
         });
 
     </script>
